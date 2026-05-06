@@ -1,0 +1,11 @@
+name: support-ticket-llm
+
+services:
+  tools:
+    image: node:22-bookworm-slim
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    command: ["bash", "-lc", "node --version && npm --version"]
+    profiles:
+      - tools
