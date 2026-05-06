@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildServer, createHealthCheckResult } from "./server.js";
+import { buildServer, createHealthCheckResult, createSearchTicketsResult } from "./server.js";
 
 describe("mcp server", () => {
   it("returns HTTP health", async () => {
@@ -22,5 +22,15 @@ describe("mcp server", () => {
       service: "mcp-server",
       status: "ok"
     });
+  });
+
+  it("searches local tickets", () => {
+    const response = createSearchTicketsResult({
+      query: "Give me the latest ticket about Lambda timeouts",
+      limit: 3
+    });
+
+    expect(response.results[0]?.ticket.id).toBe("TCK-0001");
+    expect(response.diagnostics.strategy).toBe("hybrid_lexical_vector");
   });
 });

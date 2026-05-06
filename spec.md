@@ -451,38 +451,40 @@ Acceptance criteria:
 
 Deliverables:
 
-- DynamoDB local table or equivalent.
+- DynamoDB local table or compatible local substitute.
 - Seed support-ticket dataset with hundreds of records.
 - Lightweight lexical retrieval index.
 - Precomputed embedding fixture format.
 - Seed/index script.
 - Retrieval adapter interfaces for lexical and vector search.
+- `searchTickets` MCP tool.
+- API `/chat` retrieval orchestration through MCP.
+- UI citation rendering for matching tickets.
 
 Acceptance criteria:
 
 - Seed command creates tickets and indexes them.
 - Search index contains structured fields and free-text fields.
 - Vector retrieval contains embeddings or deterministic mock embeddings for local testing.
+- "Give me the latest ticket about Lambda timeouts" returns cited ticket candidates without model inference.
 
 ### Milestone 3: MCP Data Tools And Retrieval Orchestration
 
 Deliverables:
 
-- `searchTickets` MCP tool.
 - `semanticSearchTickets` MCP tool.
 - `getTicketById` MCP tool.
 - `getTicketsByIds` MCP tool.
 - Tool input validation and bounded result limits.
 - Query planning in the Chat API.
-- Lexical and vector candidate retrieval.
 - Candidate merge, dedupe, and rank logic.
+- Retrieval evaluation fixtures and metrics script.
 
 Acceptance criteria:
 
 - MCP tools can retrieve tickets through search and DynamoDB.
 - Tools reject malformed inputs.
 - Tools enforce default and maximum limits.
-- "Give me the latest ticket about Lambda timeouts" returns one cited ticket without model inference.
 - "Give me all Lambda timeout tickets from last week" returns a bounded list without model inference.
 
 ### Milestone 4: Local Inference Adapter
