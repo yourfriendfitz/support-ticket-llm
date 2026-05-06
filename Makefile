@@ -1,15 +1,36 @@
 DOCKER_COMPOSE ?= docker compose
 
-.PHONY: compose-config dev-shell doctor milestone0-check
+.PHONY: build ci compose-config dev dev-shell doctor install lint milestone0-check milestone1-check test typecheck
 
 compose-config:
 	$(DOCKER_COMPOSE) --profile tools config
 
+install:
+	$(DOCKER_COMPOSE) run --rm tools npm install
+
+ci:
+	$(DOCKER_COMPOSE) run --rm tools npm ci
+
 dev-shell:
 	$(DOCKER_COMPOSE) run --rm tools bash
 
+dev:
+	$(DOCKER_COMPOSE) up ui api mcp-server
+
 doctor:
 	$(DOCKER_COMPOSE) run --rm tools
+
+lint:
+	$(DOCKER_COMPOSE) run --rm tools npm run lint
+
+typecheck:
+	$(DOCKER_COMPOSE) run --rm tools npm run typecheck
+
+test:
+	$(DOCKER_COMPOSE) run --rm tools npm test
+
+build:
+	$(DOCKER_COMPOSE) run --rm tools npm run build
 
 milestone0-check: compose-config
 	test -f README.md
@@ -22,3 +43,5 @@ milestone0-check: compose-config
 	test -d packages/adapters
 	test -d infra/terraform
 	test -d ops/k8s
+
+milestone1-check: compose-config typecheck test build

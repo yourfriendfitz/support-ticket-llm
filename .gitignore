@@ -144,7 +144,7 @@ vite.config.ts.timestamp-*
 
 # Local planning notes
 pre-spec.md
-clarifying-questions.md
+clarifying-questions*.md
 AGENTS.md
 docs/decisions.md
 .agent/

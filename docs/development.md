@@ -2,13 +2,13 @@
 
 ## Current Phase
 
-The repository is in Milestone 0. The application is not implemented yet.
+The repository is in Milestone 1. The local UI, API, and MCP server skeletons are implemented.
 
 Current workflow goals:
 
-- Keep the repo buildable from a clear spec.
-- Establish container-first tooling before adding code.
-- Make first implementation tasks obvious for another engineer.
+- Keep all project commands containerized.
+- Preserve the UI -> API -> MCP health path while adding future services.
+- Keep source changes covered by typecheck, test, and build.
 
 ## Container-First Policy
 
@@ -18,8 +18,10 @@ Use:
 
 ```bash
 make compose-config
+make ci
 make doctor
 make dev-shell
+make milestone1-check
 ```
 
 Avoid:
@@ -33,12 +35,12 @@ node scripts/example.js
 When Node workspace files exist, run equivalent commands inside the tools container:
 
 ```bash
-docker compose run --rm tools npm install
+docker compose run --rm tools npm ci
 docker compose run --rm tools npm run build
 docker compose run --rm tools npm test
 ```
 
-The exact package scripts will be added in Milestone 1.
+The root `Makefile` wraps these commands for normal use.
 
 ## Planned Monorepo Layout
 
@@ -49,20 +51,20 @@ apps/
   mcp-server/   MCP data-access server
 packages/
   core/         Shared schemas, types, validation, and ranking logic
-  adapters/     Bedrock, DynamoDB, search, vector, and MCP client adapters
+  adapters/     Inference, DynamoDB, search, vector, and MCP client adapters
 infra/
   terraform/    AWS infrastructure modules and stacks
 ops/
-  k8s/          EKS manifests or Helm chart
+  k8s/          Deferred Kubernetes manifests or Helm chart
 scripts/        Seed, index, evaluation, and utility scripts
 data/           Local ticket fixtures and generated sample data
 evals/          Retrieval and answer-quality evaluation fixtures
 docs/           Decision records and engineering notes
 ```
 
-## Planned Local Services
+## Local Services
 
-Milestone 1 should add:
+Milestone 1 includes:
 
 - UI container.
 - API container.
@@ -72,8 +74,8 @@ Milestone 1 should add:
 Milestone 2 should add:
 
 - DynamoDB Local or compatible local substitute.
-- Elasticsearch-compatible search container.
-- Qdrant vector database container.
+- Lightweight lexical retrieval.
+- Precomputed embedding fixtures.
 - Seed and indexing commands.
 
 ## Environment Configuration
@@ -85,24 +87,35 @@ Expected future files:
 - `.env.example`: safe defaults and required variable names.
 - `.env`: ignored local secrets and overrides.
 
-Bedrock usage:
+Inference usage:
 
-- Local development must work with a deterministic mock LLM when AWS credentials are unavailable.
-- Real Bedrock calls should only happen after AWS SSO is configured and the user explicitly starts that work.
+- Local development must work with a deterministic mock inference adapter by default.
+- Optional local model testing can use `llama.cpp` and the same Qwen3-0.6B model family planned for Lambda.
+- AWS inference calls should only happen through a non-root CLI/IAM setup and explicit deployment work.
 
 ## Verification
 
-Current Milestone 0 checks:
+Current Milestone 1 checks:
 
 ```bash
-make milestone0-check
+make milestone1-check
 ```
 
-Future source-code changes should add and use containerized commands for:
+This runs:
 
-- Formatting.
-- Linting.
-- Typechecking.
+- Compose configuration validation.
+- TypeScript typecheck.
 - Unit tests.
-- Build.
-- Retrieval evaluation.
+- Production build.
+
+For a live smoke test:
+
+```bash
+make dev
+curl http://localhost:4001/health
+curl http://localhost:4000/health
+curl http://localhost:4000/health/deep
+curl -X POST http://localhost:4000/chat \
+  -H 'content-type: application/json' \
+  -d '{"message":"Give me the latest ticket about Lambda timeouts"}'
+```

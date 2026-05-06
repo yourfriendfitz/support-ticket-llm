@@ -3,9 +3,62 @@ name: support-ticket-llm
 services:
   tools:
     image: node:22-bookworm-slim
+    user: "1000:1000"
     working_dir: /workspace
     volumes:
       - .:/workspace
+    environment:
+      HOME: /tmp
+      npm_config_cache: /tmp/.npm-cache
     command: ["bash", "-lc", "node --version && npm --version"]
     profiles:
       - tools
+
+  ui:
+    image: node:22-bookworm-slim
+    user: "1000:1000"
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      HOME: /tmp
+      npm_config_cache: /tmp/.npm-cache
+      VITE_API_BASE_URL: /api
+    command: ["bash", "-lc", "npm run dev --workspace @support-ticket-llm/ui -- --host 0.0.0.0"]
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+  api:
+    image: node:22-bookworm-slim
+    user: "1000:1000"
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      HOME: /tmp
+      npm_config_cache: /tmp/.npm-cache
+      API_HOST: 0.0.0.0
+      API_PORT: "4000"
+      MCP_SERVER_URL: http://mcp-server:4001/mcp
+    command: ["bash", "-lc", "npm run dev --workspace @support-ticket-llm/api"]
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mcp-server
+
+  mcp-server:
+    image: node:22-bookworm-slim
+    user: "1000:1000"
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      HOME: /tmp
+      npm_config_cache: /tmp/.npm-cache
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "4001"
+    command: ["bash", "-lc", "npm run dev --workspace @support-ticket-llm/mcp-server"]
+    ports:
+      - "4001:4001"
