@@ -58,7 +58,7 @@ function App() {
         <h1 id="page-title">Ticket intelligence with bounded LLM orchestration.</h1>
         <p className="lede">
           Milestone 1 proves the local service path: UI to API to MCP health check.
-          Retrieval, indexing, and Bedrock inference come next.
+          Retrieval, indexing, and tiny-model inference come next.
         </p>
       </section>
 

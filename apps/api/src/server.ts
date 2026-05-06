@@ -99,7 +99,7 @@ export function buildServer(options: ApiServerOptions = {}) {
     return {
       status: "ok",
       answer:
-        "Chat orchestration is online. Ticket retrieval and Bedrock inference will be added in later milestones.",
+        "Chat orchestration is online. Ticket retrieval and tiny-model inference will be added in later milestones.",
       request: {
         message
       },
