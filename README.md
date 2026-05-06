@@ -1,42 +1,55 @@
 # support-ticket-llm
 
-A support-ticket chatbot built with AWS, Terraform, TypeScript, LLM inference, DynamoDB, Elasticsearch-compatible search, vector retrieval, and an MCP data-access boundary.
+A support-ticket chatbot built with AWS, Terraform, TypeScript, bounded LLM inference, DynamoDB, lightweight retrieval, vector retrieval, and an MCP data-access boundary.
 
 ## Current Status
 
-The project is in Milestone 0: spec and repo foundation. Application code has not started yet.
+The project is in Milestone 1: local app skeleton. The UI, API, and MCP server are wired through Docker Compose with a health-check path.
 
 Primary source documents:
 
 - [spec.md](spec.md): build-facing milestone specification.
 - [docs/development.md](docs/development.md): repo layout and local workflow.
 
-## Milestone 0 Outcome
+## Milestone 1 Outcome
 
-Milestone 0 establishes:
+Milestone 1 establishes:
 
 - Support-ticket assistant scope for IT support users.
 - Local-first, container-first development workflow.
-- Planned TypeScript monorepo structure.
+- TypeScript npm workspace.
+- React/Vite UI shell.
+- Fastify Chat API service.
+- MCP server service with a real `healthCheck` tool.
+- Docker Compose app services for UI, API, and MCP server.
+- Containerized typecheck, test, and build commands.
 - MCP server as the data-access boundary.
-- DynamoDB as source of truth.
-- Elasticsearch-compatible search plus vector search for hybrid retrieval.
-- AWS Bedrock as the first LLM provider.
-- EKS and Terraform as the AWS deployment direction.
 
 ## Local Workflow
 
 Use containers for project tooling. Do not install project dependencies on the host.
 
 ```bash
-make compose-config
-make doctor
-make dev-shell
+make ci
+make milestone1-check
+make dev
 ```
 
-The current Compose setup only provides a Node tooling container. Application and data-service containers will be added in Milestone 1 and Milestone 2.
+Local ports:
 
-## Planned Repository Layout
+- UI: `http://localhost:5173`
+- API: `http://localhost:4000`
+- MCP server: `http://localhost:4001`
+
+Useful health checks:
+
+```bash
+curl http://localhost:4001/health
+curl http://localhost:4000/health
+curl http://localhost:4000/health/deep
+```
+
+## Repository Layout
 
 ```text
 apps/
@@ -44,12 +57,12 @@ apps/
   mcp-server/   MCP data-access server
   ui/           Chat UI
 packages/
-  adapters/     Bedrock, search, vector, and DynamoDB adapters
+  adapters/     Inference, search, vector, and DynamoDB adapters
   core/         Shared schemas, types, and retrieval logic
 infra/
   terraform/    AWS infrastructure
 ops/
-  k8s/          EKS manifests or Helm chart
+  k8s/          Deferred Kubernetes manifests or Helm chart
 scripts/        Seed, index, evaluation, and utility scripts
 data/           Local fixtures and generated sample data
 evals/          Retrieval and answer evaluation fixtures
@@ -58,4 +71,4 @@ docs/           Project decisions and development docs
 
 ## Next Milestone
 
-Milestone 1 will create the TypeScript workspace, Chat UI shell, Chat API service, MCP server service, Docker Compose app services, and health checks.
+Milestone 2 will add local ticket data, DynamoDB Local or a compatible substitute, lightweight lexical retrieval, precomputed embedding fixtures, and seed/index commands.
