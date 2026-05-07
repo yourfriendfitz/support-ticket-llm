@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The repository is in Milestone 2. The local UI, API, MCP server, seed data, and retrieval path are implemented.
+The repository is in Milestone 3. The local UI, API, MCP server, seed data, retrieval path, query planning, candidate hydration, and retrieval evaluation path are implemented.
 
 Current workflow goals:
 
@@ -21,7 +21,7 @@ make compose-config
 make ci
 make doctor
 make dev-shell
-make milestone2-check
+make milestone3-check
 ```
 
 Avoid:
@@ -79,6 +79,13 @@ Milestone 2 adds:
 - Seed and indexing commands through `make seed`.
 - MCP `searchTickets` and API `/chat` citations.
 
+Milestone 3 adds:
+
+- MCP `semanticSearchTickets`, `getTicketById`, and `getTicketsByIds`.
+- API query planning for service filters, last-week windows, limits, and recency.
+- Candidate merge, dedupe, rank, and canonical hydration.
+- Retrieval evaluation fixtures and `make eval-retrieval`.
+
 ## Environment Configuration
 
 Use checked-in examples for required environment variables and keep real secrets local.
@@ -96,10 +103,10 @@ Inference usage:
 
 ## Verification
 
-Current Milestone 2 checks:
+Current Milestone 3 checks:
 
 ```bash
-make milestone2-check
+make milestone3-check
 ```
 
 This runs:
@@ -109,6 +116,7 @@ This runs:
 - Unit tests.
 - Production build.
 - Seed/index generation.
+- Retrieval evaluation.
 
 For a live smoke test:
 
@@ -119,5 +127,5 @@ curl http://localhost:4000/health
 curl http://localhost:4000/health/deep
 curl -X POST http://localhost:4000/chat \
   -H 'content-type: application/json' \
-  -d '{"message":"Give me the latest ticket about Lambda timeouts"}'
+  -d '{"message":"Give me all Lambda timeout tickets from last week"}'
 ```

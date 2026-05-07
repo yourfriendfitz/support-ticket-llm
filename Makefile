@@ -1,6 +1,6 @@
 DOCKER_COMPOSE ?= docker compose
 
-.PHONY: build ci compose-config dev dev-shell doctor install lint milestone0-check milestone1-check milestone2-check seed test typecheck
+.PHONY: build ci compose-config dev dev-shell doctor eval-retrieval install lint milestone0-check milestone1-check milestone2-check milestone3-check seed test typecheck
 
 compose-config:
 	$(DOCKER_COMPOSE) --profile tools config
@@ -22,6 +22,9 @@ doctor:
 
 lint:
 	$(DOCKER_COMPOSE) run --rm tools npm run lint
+
+eval-retrieval:
+	$(DOCKER_COMPOSE) run --rm tools npm run eval:retrieval
 
 seed:
 	$(DOCKER_COMPOSE) run --rm tools npm run seed
@@ -52,3 +55,6 @@ milestone1-check: compose-config typecheck test build
 milestone2-check: milestone1-check seed
 	test -f data/local/tickets.json
 	test -f data/local/ticket-embeddings.json
+
+milestone3-check: milestone2-check eval-retrieval
+	test -f evals/retrieval/queries.json

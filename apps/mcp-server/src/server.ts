@@ -8,9 +8,15 @@ import {
   TICKET_SERVICES,
   TICKET_SORTS,
   TICKET_STATUSES,
+  getTicketById,
+  getTicketsByIds,
+  semanticSearchTickets,
   searchTickets,
+  type SupportTicket,
+  type TicketLookupRequest,
   type TicketSearchRequest,
-  type TicketSearchResponse
+  type TicketSearchResponse,
+  type TicketsLookupRequest
 } from "@support-ticket-llm/core";
 import Fastify from "fastify";
 import * as z from "zod/v4";
@@ -45,6 +51,14 @@ const searchTicketsInputSchema = z.object({
   sort: z.enum(TICKET_SORTS).optional()
 });
 
+const ticketLookupInputSchema = z.object({
+  ticketId: z.string().min(1)
+});
+
+const ticketsLookupInputSchema = z.object({
+  ticketIds: z.array(z.string().min(1)).min(1).max(MAX_SEARCH_LIMIT)
+});
+
 export function createHealthCheckResult(): HealthCheckResult {
   return {
     service: "mcp-server",
@@ -55,6 +69,20 @@ export function createHealthCheckResult(): HealthCheckResult {
 
 export function createSearchTicketsResult(request: TicketSearchRequest): TicketSearchResponse {
   return searchTickets(request);
+}
+
+export function createSemanticSearchTicketsResult(
+  request: TicketSearchRequest
+): TicketSearchResponse {
+  return semanticSearchTickets(request);
+}
+
+export function createGetTicketByIdResult(request: TicketLookupRequest): SupportTicket | null {
+  return getTicketById(request);
+}
+
+export function createGetTicketsByIdsResult(request: TicketsLookupRequest): SupportTicket[] {
+  return getTicketsByIds(request);
 }
 
 export function createProtocolServer() {
@@ -93,6 +121,57 @@ export function createProtocolServer() {
           text: JSON.stringify(
             createSearchTicketsResult(searchTicketsInputSchema.parse(input))
           )
+        }
+      ]
+    })
+  );
+
+  server.registerTool(
+    "semanticSearchTickets",
+    {
+      description:
+        "Search local support tickets using deterministic vector similarity only.",
+      inputSchema: searchTicketsInputSchema
+    },
+    async (input) => ({
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            createSemanticSearchTicketsResult(searchTicketsInputSchema.parse(input))
+          )
+        }
+      ]
+    })
+  );
+
+  server.registerTool(
+    "getTicketById",
+    {
+      description: "Fetch one canonical support ticket by ticketId.",
+      inputSchema: ticketLookupInputSchema
+    },
+    async (input) => ({
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(createGetTicketByIdResult(ticketLookupInputSchema.parse(input)))
+        }
+      ]
+    })
+  );
+
+  server.registerTool(
+    "getTicketsByIds",
+    {
+      description: "Fetch canonical support tickets by a bounded list of ticketIds.",
+      inputSchema: ticketsLookupInputSchema
+    },
+    async (input) => ({
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(createGetTicketsByIdsResult(ticketsLookupInputSchema.parse(input)))
         }
       ]
     })

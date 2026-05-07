@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { searchTickets } from "@support-ticket-llm/core";
+import { getTicketsByIds, searchTickets, semanticSearchTickets } from "@support-ticket-llm/core";
 import { buildServer } from "./server.js";
 
 const healthyMcp = {
@@ -45,7 +45,9 @@ describe("api server", () => {
       logger: false,
       mcpClient: {
         healthCheck: async () => healthyMcp,
-        searchTickets: async (request) => searchTickets(request)
+        searchTickets: async (request) => searchTickets(request),
+        semanticSearchTickets: async (request) => semanticSearchTickets(request),
+        getTicketsByIds: async (request) => getTicketsByIds(request)
       }
     });
 
@@ -65,6 +67,71 @@ describe("api server", () => {
       service: "lambda",
       priority: "critical"
     });
-    expect(body.diagnostics.retrieval.strategy).toBe("hybrid_lexical_vector");
+    expect(body.diagnostics.retrieval.strategy).toBe("merged_candidates");
+    expect(body.diagnostics.plan.candidateTicketIds[0]).toBe("TCK-0001");
+  });
+
+  it("plans filters and bounded result counts for multi-ticket chat", async () => {
+    const app = buildServer({
+      logger: false,
+      mcpClient: {
+        healthCheck: async () => healthyMcp,
+        searchTickets: async (request) => searchTickets(request),
+        semanticSearchTickets: async (request) => semanticSearchTickets(request),
+        getTicketsByIds: async (request) => getTicketsByIds(request)
+      }
+    });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/chat",
+      payload: {
+        message: "Give me all Lambda timeout tickets from last week"
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.status).toBe("ok");
+    expect(body.diagnostics.plan.filters.services).toEqual(["lambda"]);
+    expect(body.diagnostics.plan.filters.createdAfter).toBe("2026-04-30T12:00:00.000Z");
+    expect(body.diagnostics.plan.limit).toBe(10);
+    expect(body.citations.length).toBeGreaterThanOrEqual(2);
+    expect(body.citations.every((citation: { service: string }) => citation.service === "lambda")).toBe(
+      true
+    );
+  });
+
+  it("plans status filters before chat retrieval", async () => {
+    const app = buildServer({
+      logger: false,
+      mcpClient: {
+        healthCheck: async () => healthyMcp,
+        searchTickets: async (request) => searchTickets(request),
+        semanticSearchTickets: async (request) => semanticSearchTickets(request),
+        getTicketsByIds: async (request) => getTicketsByIds(request)
+      }
+    });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/chat",
+      payload: {
+        message: "Which closed Lambda tickets are recent?"
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.status).toBe("ok");
+    expect(body.diagnostics.plan.filters.services).toEqual(["lambda"]);
+    expect(body.diagnostics.plan.filters.statuses).toEqual(["closed"]);
+    expect(body.citations.length).toBeGreaterThan(0);
+    expect(
+      body.citations.every(
+        (citation: { service: string; status: string }) =>
+          citation.service === "lambda" && citation.status === "closed"
+      )
+    ).toBe(true);
   });
 });

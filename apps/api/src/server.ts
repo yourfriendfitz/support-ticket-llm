@@ -1,9 +1,16 @@
 import { pathToFileURL } from "node:url";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import type {
+  QueryPlan,
+  SupportTicket,
   TicketSearchRequest,
   TicketSearchResponse,
   TicketSearchResult
+} from "@support-ticket-llm/core";
+import {
+  hydrateTicketSearchResults,
+  mergeTicketSearchResults,
+  planTicketQuery
 } from "@support-ticket-llm/core";
 import Fastify from "fastify";
 
@@ -38,9 +45,21 @@ type ChatCitation = {
   matchReasons: string[];
 };
 
+type RetrievalDiagnostics = {
+  totalTickets: number;
+  filteredTickets: number;
+  returnedTickets: number;
+  strategy: string;
+  lexicalCandidateCount?: number;
+  semanticCandidateCount?: number;
+  hydratedTicketCount?: number;
+};
+
 type ApiMcpClient = {
   healthCheck: () => Promise<HealthCheckResult>;
   searchTickets: (request: TicketSearchRequest) => Promise<TicketSearchResponse>;
+  semanticSearchTickets: (request: TicketSearchRequest) => Promise<TicketSearchResponse>;
+  getTicketsByIds: (request: { ticketIds: string[] }) => Promise<SupportTicket[]>;
 };
 
 type ApiServerOptions = {
@@ -101,10 +120,34 @@ export async function callMcpSearchTickets(
   );
 }
 
+export async function callMcpSemanticSearchTickets(
+  mcpServerUrl: string,
+  request: TicketSearchRequest
+): Promise<TicketSearchResponse> {
+  return callMcpJsonTool<TicketSearchResponse>(
+    mcpServerUrl,
+    "semanticSearchTickets",
+    request as Record<string, unknown>
+  );
+}
+
+export async function callMcpGetTicketsByIds(
+  mcpServerUrl: string,
+  request: { ticketIds: string[] }
+): Promise<SupportTicket[]> {
+  return callMcpJsonTool<SupportTicket[]>(
+    mcpServerUrl,
+    "getTicketsByIds",
+    request
+  );
+}
+
 function createHttpMcpClient(mcpServerUrl: string): ApiMcpClient {
   return {
     healthCheck: () => callMcpHealthCheck(mcpServerUrl),
-    searchTickets: (request) => callMcpSearchTickets(mcpServerUrl, request)
+    searchTickets: (request) => callMcpSearchTickets(mcpServerUrl, request),
+    semanticSearchTickets: (request) => callMcpSemanticSearchTickets(mcpServerUrl, request),
+    getTicketsByIds: (request) => callMcpGetTicketsByIds(mcpServerUrl, request)
   };
 }
 
@@ -122,18 +165,74 @@ function toCitation(result: TicketSearchResult): ChatCitation {
   };
 }
 
-function buildRetrievalAnswer(searchResponse: TicketSearchResponse): string {
-  const [topResult] = searchResponse.results;
+function buildRetrievalAnswer(results: readonly TicketSearchResult[]): string {
+  const [topResult] = results;
 
   if (!topResult) {
     return "No matching tickets were found. Tiny-model inference is not active yet, so this response only reflects local retrieval.";
   }
 
   return [
-    `Found ${searchResponse.results.length} matching ticket${searchResponse.results.length === 1 ? "" : "s"}.`,
+    `Found ${results.length} matching ticket${results.length === 1 ? "" : "s"}.`,
     `Top match is ${topResult.ticket.ticketId}: ${topResult.ticket.title}.`,
     "Tiny-model inference is not active yet; this response is retrieval-only."
   ].join(" ");
+}
+
+async function runPlannedRetrieval(
+  message: string,
+  mcpClient: ApiMcpClient
+): Promise<{
+  plan: QueryPlan;
+  results: TicketSearchResult[];
+  diagnostics: RetrievalDiagnostics;
+}> {
+  const plan = planTicketQuery(message);
+  const request = {
+    query: plan.retrievalQuery,
+    filters: plan.filters,
+    limit: plan.limit,
+    sort: plan.sort
+  };
+  const lexicalSearch = await mcpClient.searchTickets(request);
+  const semanticSearch = plan.useSemanticSearch
+    ? await mcpClient.semanticSearchTickets(request)
+    : {
+        ...lexicalSearch,
+        results: [],
+        diagnostics: {
+          ...lexicalSearch.diagnostics,
+          returnedTickets: 0,
+          strategy: "deterministic_vector"
+        }
+      };
+  const mergedResults = mergeTicketSearchResults(
+    lexicalSearch.results,
+    semanticSearch.results,
+    plan.limit,
+    plan.sort
+  );
+  const hydratedTickets = await mcpClient.getTicketsByIds({
+    ticketIds: mergedResults.map((result) => result.ticket.ticketId)
+  });
+  const hydratedResults = hydrateTicketSearchResults(mergedResults, hydratedTickets);
+
+  return {
+    plan: {
+      ...plan,
+      candidateTicketIds: hydratedResults.map((result) => result.ticket.ticketId)
+    },
+    results: hydratedResults,
+    diagnostics: {
+      totalTickets: lexicalSearch.diagnostics.totalTickets,
+      filteredTickets: lexicalSearch.diagnostics.filteredTickets,
+      returnedTickets: hydratedResults.length,
+      strategy: "merged_candidates",
+      lexicalCandidateCount: lexicalSearch.results.length,
+      semanticCandidateCount: semanticSearch.results.length,
+      hydratedTicketCount: hydratedTickets.length
+    }
+  };
 }
 
 export function buildServer(options: ApiServerOptions = {}) {
@@ -172,20 +271,18 @@ export function buildServer(options: ApiServerOptions = {}) {
       };
     }
 
-    const searchResponse = await mcpClient.searchTickets({
-      query: message,
-      limit: 5
-    });
+    const retrieval = await runPlannedRetrieval(message, mcpClient);
 
     return {
       status: "ok",
-      answer: buildRetrievalAnswer(searchResponse),
+      answer: buildRetrievalAnswer(retrieval.results),
       request: {
         message
       },
-      citations: searchResponse.results.map(toCitation),
+      citations: retrieval.results.map(toCitation),
       diagnostics: {
-        retrieval: searchResponse.diagnostics
+        plan: retrieval.plan,
+        retrieval: retrieval.diagnostics
       }
     };
   });

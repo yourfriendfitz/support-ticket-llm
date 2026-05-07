@@ -12,6 +12,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsx watch src/index.ts",
+    "eval:retrieval": "tsx src/scripts/evaluate-retrieval.ts",
     "seed": "tsx src/scripts/seed-local.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"

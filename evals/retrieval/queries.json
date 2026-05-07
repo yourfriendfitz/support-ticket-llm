@@ -1,0 +1,18 @@
+[
+  {
+    "query": "Give me the latest ticket about Lambda timeouts",
+    "expectedTicketIds": ["TCK-0001"]
+  },
+  {
+    "query": "Give me all Lambda timeout tickets from last week",
+    "expectedTicketIds": ["TCK-0001", "TCK-0002"]
+  },
+  {
+    "query": "deployment permission issue stage",
+    "expectedTicketIds": ["TCK-0004"]
+  },
+  {
+    "query": "DynamoDB throttling timeline writes",
+    "expectedTicketIds": ["TCK-0003"]
+  }
+]
