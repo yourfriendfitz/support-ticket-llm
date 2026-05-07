@@ -101,4 +101,37 @@ describe("api server", () => {
       true
     );
   });
+
+  it("plans status filters before chat retrieval", async () => {
+    const app = buildServer({
+      logger: false,
+      mcpClient: {
+        healthCheck: async () => healthyMcp,
+        searchTickets: async (request) => searchTickets(request),
+        semanticSearchTickets: async (request) => semanticSearchTickets(request),
+        getTicketsByIds: async (request) => getTicketsByIds(request)
+      }
+    });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/chat",
+      payload: {
+        message: "Which closed Lambda tickets are recent?"
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.status).toBe("ok");
+    expect(body.diagnostics.plan.filters.services).toEqual(["lambda"]);
+    expect(body.diagnostics.plan.filters.statuses).toEqual(["closed"]);
+    expect(body.citations.length).toBeGreaterThan(0);
+    expect(
+      body.citations.every(
+        (citation: { service: string; status: string }) =>
+          citation.service === "lambda" && citation.status === "closed"
+      )
+    ).toBe(true);
+  });
 });

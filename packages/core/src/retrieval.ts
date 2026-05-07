@@ -16,6 +16,7 @@ import type {
   TicketSearchRequest,
   TicketSearchResponse,
   TicketSearchResult,
+  TicketStatus,
   TicketSort,
   TicketsLookupRequest
 } from "./types.js";
@@ -58,6 +59,14 @@ const serviceAliases = {
   cloudwatch: ["cloudwatch", "alarm", "metric", "metrics", "logs"],
   opensearch: ["opensearch", "search", "index", "indices"]
 } as const;
+
+const statusAliases: Record<TicketStatus, readonly string[]> = {
+  open: ["open", "opened"],
+  in_progress: ["in progress", "in-progress", "in_progress"],
+  blocked: ["blocked", "blocking"],
+  resolved: ["resolved"],
+  closed: ["closed"]
+};
 
 type ScoredTicket = TicketSearchResult & {
   createdAtMs: number;
@@ -120,6 +129,20 @@ function inferServices(queryTokens: readonly string[]) {
   return Object.entries(serviceAliases)
     .filter(([, aliases]) => aliases.some((alias) => queryTokens.includes(alias)))
     .map(([service]) => service) as TicketSearchFilters["services"];
+}
+
+function inferStatuses(query: string, queryTokens: readonly string[]) {
+  const normalizedQuery = query.toLowerCase().replace(/\s+/g, " ");
+
+  return Object.entries(statusAliases)
+    .filter(([, aliases]) =>
+      aliases.some((alias) =>
+        alias.includes(" ") || alias.includes("-") || alias.includes("_")
+          ? normalizedQuery.includes(alias)
+          : queryTokens.includes(alias)
+      )
+    )
+    .map(([status]) => status) as TicketSearchFilters["statuses"];
 }
 
 function inferDateFilters(
@@ -398,11 +421,13 @@ export function planTicketQuery(
 
   const queryTokens = tokenize(originalQuery);
   const services = inferServices(queryTokens);
+  const statuses = inferStatuses(originalQuery, queryTokens);
   const referenceDate =
     options.referenceDate ?? new Date(DEFAULT_QUERY_REFERENCE_DATE);
   const filters: TicketSearchFilters = {
     ...inferDateFilters(queryTokens, referenceDate),
-    ...(services && services.length > 0 ? { services } : {})
+    ...(services && services.length > 0 ? { services } : {}),
+    ...(statuses && statuses.length > 0 ? { statuses } : {})
   };
   const limit = inferLimit(queryTokens, options.limit);
   const sort = inferSort(originalQuery, undefined);
@@ -417,6 +442,7 @@ export function planTicketQuery(
     candidateTicketIds: [],
     reasoning: [
       ...(services && services.length > 0 ? [`services:${services.join(",")}`] : []),
+      ...(statuses && statuses.length > 0 ? [`statuses:${statuses.join(",")}`] : []),
       ...(filters.createdAfter ? ["date:last_7_days"] : []),
       `limit:${limit}`,
       `sort:${sort}`

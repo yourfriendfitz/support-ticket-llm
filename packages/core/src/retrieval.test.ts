@@ -117,6 +117,14 @@ describe("local ticket retrieval", () => {
     expect(plan.sort).toBe("relevance");
   });
 
+  it("plans status filters before retrieval", () => {
+    const plan = planTicketQuery("Which closed Lambda tickets are recent?");
+
+    expect(plan.filters.services).toEqual(["lambda"]);
+    expect(plan.filters.statuses).toEqual(["closed"]);
+    expect(plan.sort).toBe("createdAt_desc");
+  });
+
   it("merges lexical and semantic candidates then hydrates canonical tickets", () => {
     const response = planAndSearchTickets(
       "Give me all Lambda timeout tickets from last week",
@@ -130,5 +138,17 @@ describe("local ticket retrieval", () => {
     expect(response.hydratedTickets.map((ticket) => ticket.ticketId)).toEqual(
       response.plan.candidateTicketIds
     );
+  });
+
+  it("applies planned status filters to merged retrieval", () => {
+    const response = planAndSearchTickets(
+      "Which closed Lambda tickets are recent?",
+      tickets,
+      embeddings
+    );
+
+    expect(response.results.length).toBeGreaterThan(0);
+    expect(response.results.every((result) => result.ticket.service === "lambda")).toBe(true);
+    expect(response.results.every((result) => result.ticket.status === "closed")).toBe(true);
   });
 });
