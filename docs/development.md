@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The repository is in Milestone 3. The local UI, API, MCP server, seed data, retrieval path, query planning, candidate hydration, and retrieval evaluation path are implemented.
+The repository is in Milestone 4. The local UI, API, MCP server, seed data, retrieval path, query planning, candidate hydration, retrieval evaluation path, and deterministic inference adapter are implemented.
 
 Current workflow goals:
 
@@ -21,7 +21,7 @@ make compose-config
 make ci
 make doctor
 make dev-shell
-make milestone3-check
+make milestone4-check
 ```
 
 Avoid:
@@ -51,7 +51,7 @@ apps/
   mcp-server/   MCP data-access server
 packages/
   core/         Shared schemas, types, validation, and ranking logic
-  adapters/     Inference, DynamoDB, search, vector, and MCP client adapters
+  adapters/     Inference adapter contracts, local mock inference, and future provider adapters
 infra/
   terraform/    AWS infrastructure modules and stacks
 ops/
@@ -86,6 +86,14 @@ Milestone 3 adds:
 - Candidate merge, dedupe, rank, and canonical hydration.
 - Retrieval evaluation fixtures and `make eval-retrieval`.
 
+Milestone 4 adds:
+
+- `@support-ticket-llm/adapters` inference adapter package.
+- Deterministic mock inference for local/test mode.
+- Prompt templates with bounded, untrusted ticket snippets.
+- Citation validation for generated ticket answers.
+- API `/chat` answer generation after retrieval orchestration.
+
 ## Environment Configuration
 
 Use checked-in examples for required environment variables and keep real secrets local.
@@ -103,10 +111,10 @@ Inference usage:
 
 ## Verification
 
-Current Milestone 3 checks:
+Current Milestone 4 checks:
 
 ```bash
-make milestone3-check
+make milestone4-check
 ```
 
 This runs:
@@ -117,6 +125,7 @@ This runs:
 - Production build.
 - Seed/index generation.
 - Retrieval evaluation.
+- Inference adapter tests.
 
 For a live smoke test:
 

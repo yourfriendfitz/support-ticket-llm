@@ -503,6 +503,7 @@ Acceptance criteria:
 - Generated answers cite ticket IDs.
 - Model input receives only bounded candidate snippets.
 - System runs locally without loading a real model by default.
+- Citation validation prevents answers from citing ticket IDs outside the candidate set.
 
 ### Milestone 5: Serverless Tiny-Model Inference
 

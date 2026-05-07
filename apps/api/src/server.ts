@@ -1,5 +1,9 @@
 import { pathToFileURL } from "node:url";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
+import {
+  createDeterministicInferenceAdapter,
+  type InferenceAdapter
+} from "@support-ticket-llm/adapters";
 import type {
   QueryPlan,
   SupportTicket,
@@ -64,6 +68,7 @@ type ApiMcpClient = {
 
 type ApiServerOptions = {
   logger?: boolean;
+  inferenceAdapter?: InferenceAdapter;
   mcpClient?: ApiMcpClient;
   mcpServerUrl?: string;
 };
@@ -165,20 +170,6 @@ function toCitation(result: TicketSearchResult): ChatCitation {
   };
 }
 
-function buildRetrievalAnswer(results: readonly TicketSearchResult[]): string {
-  const [topResult] = results;
-
-  if (!topResult) {
-    return "No matching tickets were found. Tiny-model inference is not active yet, so this response only reflects local retrieval.";
-  }
-
-  return [
-    `Found ${results.length} matching ticket${results.length === 1 ? "" : "s"}.`,
-    `Top match is ${topResult.ticket.ticketId}: ${topResult.ticket.title}.`,
-    "Tiny-model inference is not active yet; this response is retrieval-only."
-  ].join(" ");
-}
-
 async function runPlannedRetrieval(
   message: string,
   mcpClient: ApiMcpClient
@@ -240,6 +231,8 @@ export function buildServer(options: ApiServerOptions = {}) {
   const mcpServerUrl =
     options.mcpServerUrl ?? process.env.MCP_SERVER_URL ?? DEFAULT_MCP_SERVER_URL;
   const mcpClient = options.mcpClient ?? createHttpMcpClient(mcpServerUrl);
+  const inferenceAdapter =
+    options.inferenceAdapter ?? createDeterministicInferenceAdapter();
 
   app.get("/health", async () => ({
     service: "api",
@@ -272,17 +265,30 @@ export function buildServer(options: ApiServerOptions = {}) {
     }
 
     const retrieval = await runPlannedRetrieval(message, mcpClient);
+    const inference = await inferenceAdapter.generateTicketAnswer({
+      message,
+      candidates: retrieval.results
+    });
+    const citedTicketIdSet = new Set(inference.citedTicketIds);
+    const citedResults =
+      inference.citedTicketIds.length > 0
+        ? retrieval.results.filter((result) => citedTicketIdSet.has(result.ticket.ticketId))
+        : [];
 
     return {
       status: "ok",
-      answer: buildRetrievalAnswer(retrieval.results),
+      answer: inference.answer,
       request: {
         message
       },
-      citations: retrieval.results.map(toCitation),
+      citations: citedResults.map(toCitation),
       diagnostics: {
         plan: retrieval.plan,
-        retrieval: retrieval.diagnostics
+        retrieval: retrieval.diagnostics,
+        inference: {
+          ...inference.diagnostics,
+          citedTicketIds: inference.citedTicketIds
+        }
       }
     };
   });

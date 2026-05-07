@@ -46,10 +46,6 @@ curl -X POST http://localhost:4000/chat \
   -d '{"message":"Give me all Lambda timeout tickets from last week"}'
 ```
 
-## Next Tasks For Milestone 4
+## Milestone 4 Follow-Up
 
-1. Add an inference adapter interface.
-2. Add deterministic mock inference for local/test mode.
-3. Add prompt templates for bounded candidate reranking and answer generation.
-4. Add prompt-injection guardrails around ticket snippets and user input.
-5. Keep `llama.cpp` optional until the adapter contract is stable.
+Milestone 4 is documented in [docs/milestone-4.md](milestone-4.md). It adds the local inference adapter boundary, deterministic mock inference, bounded prompt templates, and citation validation.

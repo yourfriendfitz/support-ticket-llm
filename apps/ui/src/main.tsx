@@ -31,6 +31,11 @@ type ChatResponse = {
       returnedTickets: number;
       strategy: string;
     };
+    inference?: {
+      adapter: string;
+      promptCandidateCount: number;
+      citationValidation: string;
+    };
   };
 };
 
@@ -74,8 +79,8 @@ function App() {
         <p className="eyebrow">Support Operations</p>
         <h1 id="page-title">Ticket intelligence with bounded LLM orchestration.</h1>
         <p className="lede">
-          Milestone 3 proves planned retrieval: API query planning, MCP search tools,
-          canonical hydration, and cited candidates. Tiny-model inference comes next.
+          Milestone 4 adds deterministic local inference after planned retrieval: bounded
+          ticket snippets, guarded prompts, and cited generated answers.
         </p>
       </section>
 
@@ -88,7 +93,7 @@ function App() {
           rows={5}
         />
         <button type="button" onClick={submitMessage} disabled={isSubmitting}>
-          {isSubmitting ? "Searching tickets..." : "Search tickets"}
+          {isSubmitting ? "Generating answer..." : "Generate answer"}
         </button>
 
         {response ? (
@@ -132,6 +137,22 @@ function App() {
                 <div>
                   <dt>Returned</dt>
                   <dd>{response.diagnostics.retrieval.returnedTickets}</dd>
+                </div>
+              </dl>
+            ) : null}
+            {response.diagnostics?.inference ? (
+              <dl>
+                <div>
+                  <dt>Inference</dt>
+                  <dd>{response.diagnostics.inference.adapter}</dd>
+                </div>
+                <div>
+                  <dt>Prompt candidates</dt>
+                  <dd>{response.diagnostics.inference.promptCandidateCount}</dd>
+                </div>
+                <div>
+                  <dt>Citation check</dt>
+                  <dd>{response.diagnostics.inference.citationValidation}</dd>
                 </div>
               </dl>
             ) : null}
