@@ -51,9 +51,6 @@ Expected response shape:
 - `diagnostics.retrieval.strategy` is `merged_candidates`.
 - `diagnostics.inference.adapter` is `deterministic_mock`.
 
-## Next Tasks For Milestone 5
+## Follow-Up
 
-1. Keep the deterministic adapter as the default local/test path.
-2. Add optional `llama.cpp` adapter behind the same interface.
-3. Define model artifact configuration without committing model binaries.
-4. Add a minimal serverless inference scaffold only after local adapter behavior is stable.
+Milestone 5 is documented in [docs/milestone-5.md](milestone-5.md). It keeps deterministic inference as the default, adds an optional Lambda HTTP provider path, and defines the serverless tiny-model Terraform scaffold without committing model artifacts.

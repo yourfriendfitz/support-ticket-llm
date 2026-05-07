@@ -16,6 +16,7 @@
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run typecheck",
     "eval:retrieval": "npm run eval:retrieval --workspace @support-ticket-llm/core",
+    "check:milestone5": "node scripts/check-milestone5.mjs",
     "seed": "npm run seed --workspace @support-ticket-llm/core",
     "dev:api": "npm run dev --workspace @support-ticket-llm/api",
     "dev:mcp": "npm run dev --workspace @support-ticket-llm/mcp-server",

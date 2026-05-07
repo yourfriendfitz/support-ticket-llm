@@ -5,8 +5,11 @@ export const DEFAULT_MAX_PROMPT_CANDIDATES = 5;
 export const MAX_PROMPT_CANDIDATES = 10;
 export const DEFAULT_MAX_SNIPPET_CHARACTERS = 480;
 export const MAX_SNIPPET_CHARACTERS = 1_200;
+export const DEFAULT_MAX_GENERATED_TOKENS = 256;
+export const MAX_GENERATED_TOKENS = 512;
 
-export type InferenceAdapterName = "deterministic_mock";
+export type InferenceAdapterName = "deterministic_mock" | "aws_lambda_http";
+export type CitationValidationStatus = "passed" | "failed" | "no_candidates";
 
 export type PromptTicketSnippet = {
   ticketId: string;
@@ -42,7 +45,8 @@ export type GenerateTicketAnswerResponse = {
     requestedCandidateCount: number;
     promptCandidateCount: number;
     maxSnippetCharacters: number;
-    citationValidation: "passed" | "failed" | "no_candidates";
+    maxGeneratedTokens?: number;
+    citationValidation: CitationValidationStatus;
     guardrails: string[];
   };
 };
@@ -61,6 +65,32 @@ const promptGuardrails = [
   "cite_only_candidate_ticket_ids"
 ];
 
+type FetchLikeResponse = {
+  ok: boolean;
+  status: number;
+  json: () => Promise<unknown>;
+};
+
+type FetchLike = (
+  input: string,
+  init: {
+    method: "POST";
+    headers: Record<string, string>;
+    body: string;
+    signal?: AbortSignal;
+  }
+) => Promise<FetchLikeResponse>;
+
+export type LambdaHttpInferenceAdapterOptions = {
+  endpointUrl: string;
+  apiKey?: string;
+  fetchImpl?: FetchLike;
+  maxCandidates?: number;
+  maxGeneratedTokens?: number;
+  maxSnippetCharacters?: number;
+  requestTimeoutMs?: number;
+};
+
 function normalizeBoundedInteger(
   value: number | undefined,
   fallback: number,
@@ -71,6 +101,10 @@ function normalizeBoundedInteger(
   }
 
   return Math.min(Math.max(Math.trunc(value), 1), max);
+}
+
+export function normalizeMaxGeneratedTokens(value: number | undefined): number {
+  return normalizeBoundedInteger(value, DEFAULT_MAX_GENERATED_TOKENS, MAX_GENERATED_TOKENS);
 }
 
 function sanitizeForPrompt(value: string): string {
@@ -245,6 +279,144 @@ export function createDeterministicInferenceAdapter(): InferenceAdapter {
           ),
           citationValidation,
           guardrails: promptGuardrails
+        }
+      };
+    }
+  };
+}
+
+function parseLambdaResponsePayload(value: unknown): {
+  answer: string;
+  citedTicketIds: string[];
+} {
+  if (typeof value !== "object" || value === null) {
+    throw new Error("Lambda inference response must be a JSON object");
+  }
+
+  const payload = value as {
+    answer?: unknown;
+    citedTicketIds?: unknown;
+  };
+
+  if (typeof payload.answer !== "string") {
+    throw new Error("Lambda inference response is missing answer");
+  }
+
+  if (
+    !Array.isArray(payload.citedTicketIds) ||
+    !payload.citedTicketIds.every((ticketId) => typeof ticketId === "string")
+  ) {
+    throw new Error("Lambda inference response is missing citedTicketIds");
+  }
+
+  return {
+    answer: payload.answer,
+    citedTicketIds: [...new Set(payload.citedTicketIds)]
+  };
+}
+
+function createAbortTimeout(timeoutMs: number | undefined):
+  | {
+      signal: AbortSignal;
+      clear: () => void;
+    }
+  | undefined {
+  if (!timeoutMs || timeoutMs <= 0) {
+    return undefined;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  if (typeof timeout === "object" && "unref" in timeout) {
+    timeout.unref();
+  }
+
+  return {
+    signal: controller.signal,
+    clear: () => clearTimeout(timeout)
+  };
+}
+
+export function createLambdaHttpInferenceAdapter(
+  options: LambdaHttpInferenceAdapterOptions
+): InferenceAdapter {
+  const endpointUrl = options.endpointUrl.trim();
+  if (!endpointUrl) {
+    throw new Error("endpointUrl is required for Lambda HTTP inference");
+  }
+
+  const fetchImpl: FetchLike = options.fetchImpl ?? ((input, init) => fetch(input, init));
+  const maxGeneratedTokens = normalizeMaxGeneratedTokens(options.maxGeneratedTokens);
+
+  return {
+    async generateTicketAnswer(request) {
+      const prompt = buildTicketAnswerPrompt({
+        ...request,
+        maxCandidates: options.maxCandidates ?? request.maxCandidates,
+        maxSnippetCharacters: options.maxSnippetCharacters ?? request.maxSnippetCharacters
+      });
+      const allowedTicketIds = prompt.candidateSnippets.map((candidate) => candidate.ticketId);
+      const abortTimeout = createAbortTimeout(options.requestTimeoutMs);
+      const response = await (async () => {
+        try {
+          return await fetchImpl(endpointUrl, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              ...(options.apiKey ? { authorization: `Bearer ${options.apiKey}` } : {})
+            },
+            body: JSON.stringify({
+              prompt,
+              limits: {
+                maxCandidates: prompt.candidateSnippets.length,
+                maxGeneratedTokens
+              },
+              model: {
+                family: "Qwen3-0.6B",
+                runtime: "llama.cpp"
+              }
+            }),
+            signal: abortTimeout?.signal
+          });
+        } finally {
+          abortTimeout?.clear();
+        }
+      })();
+
+      if (!response.ok) {
+        throw new Error(`Lambda inference request failed with status ${response.status}`);
+      }
+
+      const payload = parseLambdaResponsePayload(await response.json());
+      const citationValidation: CitationValidationStatus =
+        allowedTicketIds.length === 0
+          ? "no_candidates"
+          : validateCitedTicketIds(payload.answer, allowedTicketIds) &&
+              payload.citedTicketIds.every((ticketId) => allowedTicketIds.includes(ticketId))
+            ? "passed"
+            : "failed";
+
+      return {
+        answer: payload.answer,
+        citedTicketIds: payload.citedTicketIds,
+        prompt,
+        diagnostics: {
+          adapter: "aws_lambda_http",
+          templateVersion: PROMPT_TEMPLATE_VERSION,
+          requestedCandidateCount: request.candidates.length,
+          promptCandidateCount: prompt.candidateSnippets.length,
+          maxSnippetCharacters: normalizeBoundedInteger(
+            options.maxSnippetCharacters ?? request.maxSnippetCharacters,
+            DEFAULT_MAX_SNIPPET_CHARACTERS,
+            MAX_SNIPPET_CHARACTERS
+          ),
+          maxGeneratedTokens,
+          citationValidation,
+          guardrails: [
+            ...promptGuardrails,
+            "lambda_http_disabled_by_default",
+            `max_generated_tokens:${maxGeneratedTokens}`
+          ]
         }
       };
     }

@@ -4,16 +4,16 @@ A support-ticket chatbot built with AWS, Terraform, TypeScript, bounded LLM infe
 
 ## Current Status
 
-The project is in Milestone 4: local inference adapter. The UI, API, and MCP server are wired through Docker Compose, and chat requests now use MCP retrieval orchestration followed by deterministic local answer generation with bounded candidate snippets and citation validation.
+The project is in Milestone 5: serverless tiny-model inference scaffold. The UI, API, and MCP server run locally through Docker Compose, chat requests use MCP retrieval plus deterministic local answer generation by default, and the codebase now includes an optional Lambda HTTP inference adapter and Terraform scaffold for the future `llama.cpp` path.
 
 Primary source documents:
 
 - [spec.md](spec.md): build-facing milestone specification.
 - [docs/development.md](docs/development.md): repo layout and local workflow.
 
-## Milestone 4 Outcome
+## Milestone 5 Outcome
 
-Milestone 4 establishes:
+Milestone 5 establishes:
 
 - Support-ticket assistant scope for IT support users.
 - Local-first, container-first development workflow.
@@ -34,6 +34,11 @@ Milestone 4 establishes:
 - Prompt templates with bounded, untrusted ticket snippets.
 - Citation validation so generated answers cite only retrieved candidate ticket IDs.
 - API `/chat` generated answers with inference diagnostics.
+- Optional `aws_lambda_http` inference adapter behind the same inference contract.
+- Environment-based inference provider selection with deterministic mock as the default.
+- Terraform scaffold for S3 model artifacts, ECR image storage, Lambda image inference, IAM, CloudWatch logs, and optional IAM-authorized Function URL.
+- Safe environment examples for future cloud inference wiring.
+- Offline scaffold verification through `make milestone5-check`.
 
 ## Local Workflow
 
@@ -41,7 +46,7 @@ Use containers for project tooling. Do not install project dependencies on the h
 
 ```bash
 make ci
-make milestone4-check
+make milestone5-check
 make dev
 ```
 
@@ -87,4 +92,4 @@ docs/           Project decisions and development docs
 
 ## Next Milestone
 
-Milestone 5 will add the optional serverless tiny-model path behind the stable inference adapter boundary.
+Milestone 6 will add evaluation and observability around generated answers, latency, and retrieval quality.

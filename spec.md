@@ -512,16 +512,22 @@ Deliverables:
 - Terraform scaffold for minimal AWS resources.
 - S3 bucket for model artifacts.
 - ECR repository or build flow for Lambda container image.
-- Lambda inference function running `llama.cpp`.
-- Qwen3-0.6B quantized GGUF artifact flow.
+- Lambda inference function configuration for a `llama.cpp` container image.
+- Qwen3-0.6B quantized GGUF artifact flow without committing model binaries.
 - Local API adapter that can call the deployed inference Lambda.
 
 Acceptance criteria:
 
-- Terraform can plan the minimal inference resources.
-- Lambda cold-start and warm latency are measured.
-- Lambda enforces candidate and generated-token limits.
+- Local/test mode still runs without a model or AWS credentials.
+- Cloud inference is opt-in through explicit environment configuration.
+- API rejects Lambda HTTP mode unless the Lambda endpoint URL is configured.
+- Terraform scaffold defines the minimal inference resources and can be planned once a non-root AWS profile and Lambda image URI exist.
+- Lambda request/configuration paths enforce candidate and generated-token limits.
 - Root credentials are not used for CLI or Terraform.
+
+Post-deployment validation:
+
+- Lambda cold-start and warm latency are measured after the `llama.cpp` container image and model artifact are available.
 
 ### Milestone 6: Evaluation And Observability
 

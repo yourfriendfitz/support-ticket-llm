@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getTicketsByIds, searchTickets, semanticSearchTickets } from "@support-ticket-llm/core";
-import { buildServer } from "./server.js";
+import { buildServer, createConfiguredInferenceAdapter } from "./server.js";
 
 const healthyMcp = {
   service: "mcp-server",
@@ -9,6 +9,43 @@ const healthyMcp = {
 };
 
 describe("api server", () => {
+  it("defaults to deterministic mock inference when no provider env is set", async () => {
+    const adapter = createConfiguredInferenceAdapter({});
+
+    const response = await adapter.generateTicketAnswer({
+      message: "Find a ticket that does not exist",
+      candidates: []
+    });
+
+    expect(response.diagnostics.adapter).toBe("deterministic_mock");
+  });
+
+  it("requires a Lambda URL when Lambda HTTP inference is configured", () => {
+    expect(() =>
+      createConfiguredInferenceAdapter({
+        INFERENCE_PROVIDER: "aws_lambda_http"
+      })
+    ).toThrow("INFERENCE_LAMBDA_URL is required");
+  });
+
+  it("rejects unsupported inference providers", () => {
+    expect(() =>
+      createConfiguredInferenceAdapter({
+        INFERENCE_PROVIDER: "bedrock"
+      })
+    ).toThrow("Unsupported INFERENCE_PROVIDER");
+  });
+
+  it("rejects malformed inference limit env vars", () => {
+    expect(() =>
+      createConfiguredInferenceAdapter({
+        INFERENCE_PROVIDER: "aws_lambda_http",
+        INFERENCE_LAMBDA_URL: "https://example.invalid/infer",
+        INFERENCE_MAX_GENERATED_TOKENS: "10.5"
+      })
+    ).toThrow("INFERENCE_MAX_GENERATED_TOKENS must be a positive integer");
+  });
+
   it("returns API health", async () => {
     const app = buildServer({ logger: false });
 
