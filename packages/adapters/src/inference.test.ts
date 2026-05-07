@@ -209,6 +209,31 @@ describe("inference adapters", () => {
     });
 
     expect(response.diagnostics.citationValidation).toBe("failed");
-    expect(response.citedTicketIds).toEqual(["TCK-9999"]);
+    expect(response.citedTicketIds).toEqual([]);
+    expect(response.answer).toContain("cannot return it safely");
+    expect(response.answer).not.toContain("TCK-9999");
+  });
+
+  it("fails closed when Lambda HTTP inference cites tickets with no candidates", async () => {
+    const adapter = createLambdaHttpInferenceAdapter({
+      endpointUrl: "https://example.invalid/infer",
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          answer: "TCK-9999 is the best match.",
+          citedTicketIds: ["TCK-9999"]
+        })
+      })
+    });
+
+    const response = await adapter.generateTicketAnswer({
+      message: "Find a ticket that does not exist",
+      candidates: []
+    });
+
+    expect(response.diagnostics.citationValidation).toBe("failed");
+    expect(response.citedTicketIds).toEqual([]);
+    expect(response.answer).not.toContain("TCK-9999");
   });
 });

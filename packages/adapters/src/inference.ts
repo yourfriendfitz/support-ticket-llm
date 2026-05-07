@@ -7,6 +7,8 @@ export const DEFAULT_MAX_SNIPPET_CHARACTERS = 480;
 export const MAX_SNIPPET_CHARACTERS = 1_200;
 export const DEFAULT_MAX_GENERATED_TOKENS = 256;
 export const MAX_GENERATED_TOKENS = 512;
+export const UNSAFE_CITATION_FALLBACK_ANSWER =
+  "The model response cited ticket IDs outside the retrieved candidate set, so I cannot return it safely. Please retry or inspect the retrieved ticket candidates.";
 
 export type InferenceAdapterName = "deterministic_mock" | "aws_lambda_http";
 export type CitationValidationStatus = "passed" | "failed" | "no_candidates";
@@ -315,6 +317,28 @@ function parseLambdaResponsePayload(value: unknown): {
   };
 }
 
+function validateLambdaPayloadCitations(
+  payload: {
+    answer: string;
+    citedTicketIds: string[];
+  },
+  allowedTicketIds: readonly string[]
+): CitationValidationStatus {
+  const payloadTicketIds = new Set([
+    ...extractTicketIds(payload.answer),
+    ...payload.citedTicketIds
+  ]);
+
+  if (allowedTicketIds.length === 0) {
+    return payloadTicketIds.size === 0 ? "no_candidates" : "failed";
+  }
+
+  const allowedTicketIdSet = new Set(allowedTicketIds);
+  return [...payloadTicketIds].every((ticketId) => allowedTicketIdSet.has(ticketId))
+    ? "passed"
+    : "failed";
+}
+
 function createAbortTimeout(timeoutMs: number | undefined):
   | {
       signal: AbortSignal;
@@ -388,17 +412,18 @@ export function createLambdaHttpInferenceAdapter(
       }
 
       const payload = parseLambdaResponsePayload(await response.json());
-      const citationValidation: CitationValidationStatus =
-        allowedTicketIds.length === 0
-          ? "no_candidates"
-          : validateCitedTicketIds(payload.answer, allowedTicketIds) &&
-              payload.citedTicketIds.every((ticketId) => allowedTicketIds.includes(ticketId))
-            ? "passed"
-            : "failed";
+      const citationValidation = validateLambdaPayloadCitations(payload, allowedTicketIds);
+      const safePayload =
+        citationValidation === "failed"
+          ? {
+              answer: UNSAFE_CITATION_FALLBACK_ANSWER,
+              citedTicketIds: []
+            }
+          : payload;
 
       return {
-        answer: payload.answer,
-        citedTicketIds: payload.citedTicketIds,
+        answer: safePayload.answer,
+        citedTicketIds: safePayload.citedTicketIds,
         prompt,
         diagnostics: {
           adapter: "aws_lambda_http",

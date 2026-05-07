@@ -3,6 +3,8 @@ import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/cli
 import {
   createDeterministicInferenceAdapter,
   createLambdaHttpInferenceAdapter,
+  UNSAFE_CITATION_FALLBACK_ANSWER,
+  type GenerateTicketAnswerResponse,
   type InferenceAdapter
 } from "@support-ticket-llm/adapters";
 import type {
@@ -246,6 +248,26 @@ function toCitation(result: TicketSearchResult): ChatCitation {
   };
 }
 
+function toSafeInferenceResult(inference: GenerateTicketAnswerResponse): {
+  answer: string;
+  citedTicketIds: string[];
+  unsafeAnswerWithheld: boolean;
+} {
+  if (inference.diagnostics.citationValidation !== "failed") {
+    return {
+      answer: inference.answer,
+      citedTicketIds: inference.citedTicketIds,
+      unsafeAnswerWithheld: false
+    };
+  }
+
+  return {
+    answer: UNSAFE_CITATION_FALLBACK_ANSWER,
+    citedTicketIds: [],
+    unsafeAnswerWithheld: true
+  };
+}
+
 async function runPlannedRetrieval(
   message: string,
   mcpClient: ApiMcpClient
@@ -344,15 +366,16 @@ export function buildServer(options: ApiServerOptions = {}) {
       message,
       candidates: retrieval.results
     });
-    const citedTicketIdSet = new Set(inference.citedTicketIds);
+    const safeInference = toSafeInferenceResult(inference);
+    const citedTicketIdSet = new Set(safeInference.citedTicketIds);
     const citedResults =
-      inference.citedTicketIds.length > 0
+      safeInference.citedTicketIds.length > 0
         ? retrieval.results.filter((result) => citedTicketIdSet.has(result.ticket.ticketId))
         : [];
 
     return {
       status: "ok",
-      answer: inference.answer,
+      answer: safeInference.answer,
       request: {
         message
       },
@@ -362,7 +385,8 @@ export function buildServer(options: ApiServerOptions = {}) {
         retrieval: retrieval.diagnostics,
         inference: {
           ...inference.diagnostics,
-          citedTicketIds: inference.citedTicketIds
+          citedTicketIds: safeInference.citedTicketIds,
+          unsafeAnswerWithheld: safeInference.unsafeAnswerWithheld
         }
       }
     };
