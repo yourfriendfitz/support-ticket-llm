@@ -2,6 +2,9 @@ import { pathToFileURL } from "node:url";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import {
   createDeterministicInferenceAdapter,
+  createLambdaHttpInferenceAdapter,
+  UNSAFE_CITATION_FALLBACK_ANSWER,
+  type GenerateTicketAnswerResponse,
   type InferenceAdapter
 } from "@support-ticket-llm/adapters";
 import type {
@@ -72,6 +75,8 @@ type ApiServerOptions = {
   mcpClient?: ApiMcpClient;
   mcpServerUrl?: string;
 };
+
+type InferenceProvider = "deterministic_mock" | "aws_lambda_http";
 
 function isTextContent(value: unknown): value is TextContent {
   return (
@@ -156,6 +161,79 @@ function createHttpMcpClient(mcpServerUrl: string): ApiMcpClient {
   };
 }
 
+function parseOptionalPositiveInteger(
+  name: string,
+  value: string | undefined
+): number | undefined {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (!/^\d+$/.test(normalized)) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+
+  const parsed = Number.parseInt(normalized, 10);
+  if (parsed <= 0) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+
+  return parsed;
+}
+
+function parseInferenceProvider(value: string | undefined): InferenceProvider {
+  const provider = value?.trim() || "deterministic_mock";
+  if (provider === "deterministic_mock" || provider === "aws_lambda_http") {
+    return provider;
+  }
+
+  throw new Error(`Unsupported INFERENCE_PROVIDER: ${provider}`);
+}
+
+function optionalTrimmed(value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+  return normalized ? normalized : undefined;
+}
+
+export function createConfiguredInferenceAdapter(
+  env: Record<string, string | undefined> = process.env
+): InferenceAdapter {
+  const provider = parseInferenceProvider(env.INFERENCE_PROVIDER);
+
+  if (provider === "deterministic_mock") {
+    return createDeterministicInferenceAdapter();
+  }
+
+  const endpointUrl = optionalTrimmed(env.INFERENCE_LAMBDA_URL);
+  if (!endpointUrl) {
+    throw new Error(
+      "INFERENCE_LAMBDA_URL is required when INFERENCE_PROVIDER=aws_lambda_http"
+    );
+  }
+
+  return createLambdaHttpInferenceAdapter({
+    endpointUrl,
+    apiKey: optionalTrimmed(env.INFERENCE_LAMBDA_API_KEY),
+    maxCandidates: parseOptionalPositiveInteger(
+      "INFERENCE_MAX_CANDIDATES",
+      env.INFERENCE_MAX_CANDIDATES
+    ),
+    maxGeneratedTokens: parseOptionalPositiveInteger(
+      "INFERENCE_MAX_GENERATED_TOKENS",
+      env.INFERENCE_MAX_GENERATED_TOKENS
+    ),
+    maxSnippetCharacters: parseOptionalPositiveInteger(
+      "INFERENCE_MAX_SNIPPET_CHARACTERS",
+      env.INFERENCE_MAX_SNIPPET_CHARACTERS
+    ),
+    requestTimeoutMs: parseOptionalPositiveInteger(
+      "INFERENCE_REQUEST_TIMEOUT_MS",
+      env.INFERENCE_REQUEST_TIMEOUT_MS
+    )
+  });
+}
+
 function toCitation(result: TicketSearchResult): ChatCitation {
   return {
     ticketId: result.ticket.ticketId,
@@ -167,6 +245,26 @@ function toCitation(result: TicketSearchResult): ChatCitation {
     createdAt: result.ticket.createdAt,
     score: result.score,
     matchReasons: result.matchReasons
+  };
+}
+
+function toSafeInferenceResult(inference: GenerateTicketAnswerResponse): {
+  answer: string;
+  citedTicketIds: string[];
+  unsafeAnswerWithheld: boolean;
+} {
+  if (inference.diagnostics.citationValidation !== "failed") {
+    return {
+      answer: inference.answer,
+      citedTicketIds: inference.citedTicketIds,
+      unsafeAnswerWithheld: false
+    };
+  }
+
+  return {
+    answer: UNSAFE_CITATION_FALLBACK_ANSWER,
+    citedTicketIds: [],
+    unsafeAnswerWithheld: true
   };
 }
 
@@ -231,8 +329,7 @@ export function buildServer(options: ApiServerOptions = {}) {
   const mcpServerUrl =
     options.mcpServerUrl ?? process.env.MCP_SERVER_URL ?? DEFAULT_MCP_SERVER_URL;
   const mcpClient = options.mcpClient ?? createHttpMcpClient(mcpServerUrl);
-  const inferenceAdapter =
-    options.inferenceAdapter ?? createDeterministicInferenceAdapter();
+  const inferenceAdapter = options.inferenceAdapter ?? createConfiguredInferenceAdapter();
 
   app.get("/health", async () => ({
     service: "api",
@@ -269,15 +366,16 @@ export function buildServer(options: ApiServerOptions = {}) {
       message,
       candidates: retrieval.results
     });
-    const citedTicketIdSet = new Set(inference.citedTicketIds);
+    const safeInference = toSafeInferenceResult(inference);
+    const citedTicketIdSet = new Set(safeInference.citedTicketIds);
     const citedResults =
-      inference.citedTicketIds.length > 0
+      safeInference.citedTicketIds.length > 0
         ? retrieval.results.filter((result) => citedTicketIdSet.has(result.ticket.ticketId))
         : [];
 
     return {
       status: "ok",
-      answer: inference.answer,
+      answer: safeInference.answer,
       request: {
         message
       },
@@ -287,7 +385,8 @@ export function buildServer(options: ApiServerOptions = {}) {
         retrieval: retrieval.diagnostics,
         inference: {
           ...inference.diagnostics,
-          citedTicketIds: inference.citedTicketIds
+          citedTicketIds: safeInference.citedTicketIds,
+          unsafeAnswerWithheld: safeInference.unsafeAnswerWithheld
         }
       }
     };

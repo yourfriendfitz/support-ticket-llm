@@ -117,6 +117,14 @@ dist
 .dynamodb/
 data/local/
 
+# Local model artifacts
+models/
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+
 # Firebase cache directory
 .firebase/
 

@@ -9,10 +9,12 @@ import {
 import {
   buildTicketAnswerPrompt,
   createDeterministicInferenceAdapter,
+  createLambdaHttpInferenceAdapter,
+  normalizeMaxGeneratedTokens,
   validateCitedTicketIds
 } from "./inference.js";
 
-describe("deterministic inference adapter", () => {
+describe("inference adapters", () => {
   const tickets = createSeedTickets();
   const embeddings = createTicketEmbeddings(tickets);
   const retrieval = searchTickets(
@@ -108,5 +110,130 @@ describe("deterministic inference adapter", () => {
     expect(response.citedTicketIds).toEqual([]);
     expect(response.diagnostics.citationValidation).toBe("no_candidates");
     expect(response.answer).toContain("could not find matching ticket candidates");
+  });
+
+  it("normalizes generated-token limits for optional model adapters", () => {
+    expect(normalizeMaxGeneratedTokens(undefined)).toBe(256);
+    expect(normalizeMaxGeneratedTokens(999)).toBe(512);
+    expect(normalizeMaxGeneratedTokens(0)).toBe(1);
+  });
+
+  it("calls optional Lambda HTTP inference with bounded prompt and token limits", async () => {
+    let endpoint: string | undefined;
+    let headers: Record<string, string> | undefined;
+    let requestBody:
+      | {
+          prompt: {
+            candidateSnippets: { ticketId: string; snippet: string }[];
+          };
+          limits: {
+            maxCandidates: number;
+            maxGeneratedTokens: number;
+          };
+          model: {
+            family: string;
+            runtime: string;
+          };
+        }
+      | undefined;
+
+    const adapter = createLambdaHttpInferenceAdapter({
+      endpointUrl: "https://example.invalid/infer",
+      apiKey: "local-test-key",
+      maxCandidates: 2,
+      maxGeneratedTokens: 999,
+      maxSnippetCharacters: 120,
+      fetchImpl: async (input, init) => {
+        endpoint = input;
+        headers = init.headers;
+        requestBody = JSON.parse(init.body) as typeof requestBody;
+        const citedTicketIds =
+          requestBody?.prompt.candidateSnippets.map((candidate) => candidate.ticketId) ?? [];
+
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            answer: `${citedTicketIds.join(
+              " and "
+            )} are the strongest matching Lambda timeout tickets.`,
+            citedTicketIds
+          })
+        };
+      }
+    });
+
+    const response = await adapter.generateTicketAnswer({
+      message: "Give me all Lambda timeout tickets from last week",
+      candidates: retrieval.results,
+      maxCandidates: 8
+    });
+
+    expect(endpoint).toBe("https://example.invalid/infer");
+    expect(headers?.authorization).toBe("Bearer local-test-key");
+    expect(requestBody?.prompt.candidateSnippets).toHaveLength(2);
+    expect(requestBody?.prompt.candidateSnippets[0]?.snippet.length).toBeLessThanOrEqual(120);
+    expect(requestBody?.limits).toEqual({
+      maxCandidates: 2,
+      maxGeneratedTokens: 512
+    });
+    expect(requestBody?.model).toEqual({
+      family: "Qwen3-0.6B",
+      runtime: "llama.cpp"
+    });
+    expect(response.citedTicketIds).toEqual(
+      requestBody?.prompt.candidateSnippets.map((candidate) => candidate.ticketId)
+    );
+    expect(response.diagnostics.adapter).toBe("aws_lambda_http");
+    expect(response.diagnostics.maxGeneratedTokens).toBe(512);
+    expect(response.diagnostics.citationValidation).toBe("passed");
+  });
+
+  it("marks Lambda HTTP inference citations as failed when they cite outside candidates", async () => {
+    const adapter = createLambdaHttpInferenceAdapter({
+      endpointUrl: "https://example.invalid/infer",
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          answer: "TCK-9999 is the best match.",
+          citedTicketIds: ["TCK-9999"]
+        })
+      })
+    });
+
+    const response = await adapter.generateTicketAnswer({
+      message: "Give me one Lambda timeout ticket",
+      candidates: retrieval.results,
+      maxCandidates: 1
+    });
+
+    expect(response.diagnostics.citationValidation).toBe("failed");
+    expect(response.citedTicketIds).toEqual([]);
+    expect(response.answer).toContain("cannot return it safely");
+    expect(response.answer).not.toContain("TCK-9999");
+  });
+
+  it("fails closed when Lambda HTTP inference cites tickets with no candidates", async () => {
+    const adapter = createLambdaHttpInferenceAdapter({
+      endpointUrl: "https://example.invalid/infer",
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          answer: "TCK-9999 is the best match.",
+          citedTicketIds: ["TCK-9999"]
+        })
+      })
+    });
+
+    const response = await adapter.generateTicketAnswer({
+      message: "Find a ticket that does not exist",
+      candidates: []
+    });
+
+    expect(response.diagnostics.citationValidation).toBe("failed");
+    expect(response.citedTicketIds).toEqual([]);
+    expect(response.answer).not.toContain("TCK-9999");
   });
 });

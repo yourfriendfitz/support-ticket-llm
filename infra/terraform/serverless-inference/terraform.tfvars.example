@@ -1,0 +1,17 @@
+aws_region  = "us-east-2"
+environment = "dev"
+
+# Replace this with the image URI produced by the future Lambda container build.
+lambda_image_uri = "123456789012.dkr.ecr.us-east-2.amazonaws.com/support-ticket-llm-dev-inference:placeholder"
+
+# The model binary is uploaded separately and never committed to this repo.
+model_artifact_key = "models/qwen3-0.6b-q4_k_m.gguf"
+
+lambda_architecture             = "arm64"
+lambda_memory_mb                = 1024
+lambda_timeout_seconds          = 30
+lambda_ephemeral_storage_mb     = 512
+max_candidates                  = 5
+max_generated_tokens            = 256
+enable_function_url             = false
+function_url_authorization_type = "AWS_IAM"

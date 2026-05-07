@@ -1,6 +1,6 @@
 DOCKER_COMPOSE ?= docker compose
 
-.PHONY: build ci compose-config dev dev-shell doctor eval-retrieval install lint milestone0-check milestone1-check milestone2-check milestone3-check milestone4-check seed test typecheck
+.PHONY: build ci compose-config dev dev-shell doctor eval-retrieval install lint milestone0-check milestone1-check milestone2-check milestone3-check milestone4-check milestone5-check seed test typecheck
 
 compose-config:
 	$(DOCKER_COMPOSE) --profile tools config
@@ -62,3 +62,6 @@ milestone3-check: milestone2-check eval-retrieval
 milestone4-check: milestone3-check
 	test -f packages/adapters/src/inference.ts
 	test -f packages/adapters/src/inference.test.ts
+
+milestone5-check: milestone4-check
+	$(DOCKER_COMPOSE) run --rm tools npm run check:milestone5

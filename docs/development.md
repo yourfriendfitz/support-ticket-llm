@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The repository is in Milestone 4. The local UI, API, MCP server, seed data, retrieval path, query planning, candidate hydration, retrieval evaluation path, and deterministic inference adapter are implemented.
+The repository is in Milestone 5. The local UI, API, MCP server, seed data, retrieval path, query planning, candidate hydration, retrieval evaluation path, deterministic inference adapter, optional Lambda HTTP inference adapter, and serverless inference Terraform scaffold are implemented.
 
 Current workflow goals:
 
@@ -21,7 +21,7 @@ make compose-config
 make ci
 make doctor
 make dev-shell
-make milestone4-check
+make milestone5-check
 ```
 
 Avoid:
@@ -94,6 +94,14 @@ Milestone 4 adds:
 - Citation validation for generated ticket answers.
 - API `/chat` answer generation after retrieval orchestration.
 
+Milestone 5 adds:
+
+- Optional `aws_lambda_http` inference adapter behind the stable adapter contract.
+- `INFERENCE_PROVIDER` configuration with `deterministic_mock` as the default.
+- Generated-token, candidate-count, snippet-size, and timeout limits for cloud inference requests.
+- Terraform scaffold for the future `llama.cpp` Lambda path.
+- `.env.example` and `make milestone5-check`.
+
 ## Environment Configuration
 
 Use checked-in examples for required environment variables and keep real secrets local.
@@ -106,15 +114,24 @@ Expected future files:
 Inference usage:
 
 - Local development must work with a deterministic mock inference adapter by default.
-- Optional local model testing can use `llama.cpp` and the same Qwen3-0.6B model family planned for Lambda.
-- AWS inference calls should only happen through a non-root CLI/IAM setup and explicit deployment work.
+- Optional Lambda HTTP model testing uses `INFERENCE_PROVIDER=aws_lambda_http` and the same Qwen3-0.6B model family planned for Lambda.
+- AWS inference calls should only happen through a non-root CLI/IAM setup, explicit deployment work, and an explicit `INFERENCE_LAMBDA_URL`.
+
+Safe defaults are documented in `.env.example`:
+
+- `INFERENCE_PROVIDER=deterministic_mock`
+- `INFERENCE_LAMBDA_URL=`
+- `INFERENCE_MAX_CANDIDATES=5`
+- `INFERENCE_MAX_SNIPPET_CHARACTERS=480`
+- `INFERENCE_MAX_GENERATED_TOKENS=256`
+- `INFERENCE_REQUEST_TIMEOUT_MS=15000`
 
 ## Verification
 
-Current Milestone 4 checks:
+Current Milestone 5 checks:
 
 ```bash
-make milestone4-check
+make milestone5-check
 ```
 
 This runs:
@@ -126,6 +143,7 @@ This runs:
 - Seed/index generation.
 - Retrieval evaluation.
 - Inference adapter tests.
+- Offline serverless inference scaffold validation.
 
 For a live smoke test:
 
