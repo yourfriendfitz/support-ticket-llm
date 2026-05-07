@@ -4,16 +4,16 @@ A support-ticket chatbot built with AWS, Terraform, TypeScript, bounded LLM infe
 
 ## Current Status
 
-The project is in Milestone 3: retrieval orchestration. The UI, API, and MCP server are wired through Docker Compose, and chat requests now use MCP search, semantic search, canonical ticket hydration, query planning, and candidate merging before returning cited local ticket candidates.
+The project is in Milestone 4: local inference adapter. The UI, API, and MCP server are wired through Docker Compose, and chat requests now use MCP retrieval orchestration followed by deterministic local answer generation with bounded candidate snippets and citation validation.
 
 Primary source documents:
 
 - [spec.md](spec.md): build-facing milestone specification.
 - [docs/development.md](docs/development.md): repo layout and local workflow.
 
-## Milestone 3 Outcome
+## Milestone 4 Outcome
 
-Milestone 3 establishes:
+Milestone 4 establishes:
 
 - Support-ticket assistant scope for IT support users.
 - Local-first, container-first development workflow.
@@ -29,6 +29,11 @@ Milestone 3 establishes:
 - Hybrid lexical and deterministic vector retrieval for local development.
 - API `/chat` query planning, candidate merge/dedupe/rank, canonical ticket hydration, and cited ticket candidates.
 - Retrieval evaluation fixtures and a metrics command.
+- `@support-ticket-llm/adapters` package for inference boundaries.
+- Deterministic mock inference for local/test mode.
+- Prompt templates with bounded, untrusted ticket snippets.
+- Citation validation so generated answers cite only retrieved candidate ticket IDs.
+- API `/chat` generated answers with inference diagnostics.
 
 ## Local Workflow
 
@@ -36,7 +41,7 @@ Use containers for project tooling. Do not install project dependencies on the h
 
 ```bash
 make ci
-make milestone3-check
+make milestone4-check
 make dev
 ```
 
@@ -82,4 +87,4 @@ docs/           Project decisions and development docs
 
 ## Next Milestone
 
-Milestone 4 will add the local inference adapter boundary, deterministic mock inference, prompt templates, and guardrails before the optional `llama.cpp` path.
+Milestone 5 will add the optional serverless tiny-model path behind the stable inference adapter boundary.

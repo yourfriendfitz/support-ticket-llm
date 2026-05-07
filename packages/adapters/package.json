@@ -1,0 +1,20 @@
+{
+  "name": "@support-ticket-llm/adapters",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "npm run build --workspace @support-ticket-llm/core && tsc -p tsconfig.build.json",
+    "test": "npm run build --workspace @support-ticket-llm/core && vitest run",
+    "typecheck": "npm run build --workspace @support-ticket-llm/core && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@support-ticket-llm/core": "0.1.0"
+  }
+}

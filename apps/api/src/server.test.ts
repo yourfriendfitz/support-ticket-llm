@@ -62,12 +62,15 @@ describe("api server", () => {
     expect(response.statusCode).toBe(200);
     const body = response.json();
     expect(body.status).toBe("ok");
+    expect(body.answer).toContain("TCK-0001");
     expect(body.citations[0]).toMatchObject({
       ticketId: "TCK-0001",
       service: "lambda",
       priority: "critical"
     });
     expect(body.diagnostics.retrieval.strategy).toBe("merged_candidates");
+    expect(body.diagnostics.inference.adapter).toBe("deterministic_mock");
+    expect(body.diagnostics.inference.citationValidation).toBe("passed");
     expect(body.diagnostics.plan.candidateTicketIds[0]).toBe("TCK-0001");
   });
 
@@ -96,6 +99,7 @@ describe("api server", () => {
     expect(body.diagnostics.plan.filters.services).toEqual(["lambda"]);
     expect(body.diagnostics.plan.filters.createdAfter).toBe("2026-04-30T12:00:00.000Z");
     expect(body.diagnostics.plan.limit).toBe(10);
+    expect(body.diagnostics.inference.promptCandidateCount).toBe(body.citations.length);
     expect(body.citations.length).toBeGreaterThanOrEqual(2);
     expect(body.citations.every((citation: { service: string }) => citation.service === "lambda")).toBe(
       true
@@ -126,6 +130,9 @@ describe("api server", () => {
     expect(body.status).toBe("ok");
     expect(body.diagnostics.plan.filters.services).toEqual(["lambda"]);
     expect(body.diagnostics.plan.filters.statuses).toEqual(["closed"]);
+    expect(body.diagnostics.inference.citedTicketIds).toEqual(
+      body.citations.map((citation: { ticketId: string }) => citation.ticketId)
+    );
     expect(body.citations.length).toBeGreaterThan(0);
     expect(
       body.citations.every(
