@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildServer, createHealthCheckResult, createSearchTicketsResult } from "./server.js";
+import {
+  buildServer,
+  createGetTicketByIdResult,
+  createGetTicketsByIdsResult,
+  createHealthCheckResult,
+  createSearchTicketsResult,
+  createSemanticSearchTicketsResult
+} from "./server.js";
 
 describe("mcp server", () => {
   it("returns HTTP health", async () => {
@@ -32,5 +39,24 @@ describe("mcp server", () => {
 
     expect(response.results[0]?.ticket.ticketId).toBe("TCK-0001");
     expect(response.diagnostics.strategy).toBe("hybrid_lexical_vector");
+  });
+
+  it("runs semantic ticket search", () => {
+    const response = createSemanticSearchTicketsResult({
+      query: "Lambda checkout worker times out under payment load",
+      limit: 3
+    });
+
+    expect(response.diagnostics.strategy).toBe("deterministic_vector");
+    expect(response.results.length).toBeGreaterThan(0);
+  });
+
+  it("hydrates canonical tickets by ID", () => {
+    expect(createGetTicketByIdResult({ ticketId: "TCK-0001" })?.ticketId).toBe("TCK-0001");
+    expect(
+      createGetTicketsByIdsResult({ ticketIds: ["TCK-0002", "TCK-0001", "TCK-0002"] }).map(
+        (ticket) => ticket.ticketId
+      )
+    ).toEqual(["TCK-0002", "TCK-0001"]);
   });
 });

@@ -47,10 +47,6 @@ curl -X POST http://localhost:4000/chat \
   -d '{"message":"Give me the latest ticket about Lambda timeouts"}'
 ```
 
-## Next Tasks For Milestone 3
+## Milestone 3 Follow-Up
 
-1. Add `getTicketById` and `getTicketsByIds` MCP tools.
-2. Add explicit semantic-search controls if the UI/API needs separate vector-only retrieval.
-3. Add query planning in the Chat API for filters, date ranges, and result limits.
-4. Add candidate merge, dedupe, and ranking controls.
-5. Add retrieval evaluation fixtures and metrics scripts.
+Milestone 3 work is tracked in [milestone-3.md](milestone-3.md).

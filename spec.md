@@ -486,6 +486,7 @@ Acceptance criteria:
 - Tools reject malformed inputs.
 - Tools enforce default and maximum limits.
 - "Give me all Lambda timeout tickets from last week" returns a bounded list without model inference.
+- Retrieval evaluation fixtures pass for expected ticket IDs.
 
 ### Milestone 4: Local Inference Adapter
 

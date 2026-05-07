@@ -4,30 +4,31 @@ A support-ticket chatbot built with AWS, Terraform, TypeScript, bounded LLM infe
 
 ## Current Status
 
-The project is in Milestone 2: local ticket data and retrieval. The UI, API, and MCP server are wired through Docker Compose, and chat requests now return cited local ticket candidates through the MCP search boundary.
+The project is in Milestone 3: retrieval orchestration. The UI, API, and MCP server are wired through Docker Compose, and chat requests now use MCP search, semantic search, canonical ticket hydration, query planning, and candidate merging before returning cited local ticket candidates.
 
 Primary source documents:
 
 - [spec.md](spec.md): build-facing milestone specification.
 - [docs/development.md](docs/development.md): repo layout and local workflow.
 
-## Milestone 2 Outcome
+## Milestone 3 Outcome
 
-Milestone 2 establishes:
+Milestone 3 establishes:
 
 - Support-ticket assistant scope for IT support users.
 - Local-first, container-first development workflow.
 - TypeScript npm workspace.
 - React/Vite UI shell.
 - Fastify Chat API service.
-- MCP server service with real `healthCheck` and `searchTickets` tools.
+- MCP server service with real `healthCheck`, `searchTickets`, `semanticSearchTickets`, `getTicketById`, and `getTicketsByIds` tools.
 - Docker Compose app services for UI, API, and MCP server.
 - Containerized typecheck, test, and build commands.
 - MCP server as the data-access boundary.
 - Shared `@support-ticket-llm/core` package for ticket types, seed data, mock embeddings, and retrieval.
 - Deterministic hundreds-scale ticket seed generation.
 - Hybrid lexical and deterministic vector retrieval for local development.
-- API `/chat` responses with cited ticket candidates.
+- API `/chat` query planning, candidate merge/dedupe/rank, canonical ticket hydration, and cited ticket candidates.
+- Retrieval evaluation fixtures and a metrics command.
 
 ## Local Workflow
 
@@ -35,7 +36,7 @@ Use containers for project tooling. Do not install project dependencies on the h
 
 ```bash
 make ci
-make milestone2-check
+make milestone3-check
 make dev
 ```
 
@@ -81,4 +82,4 @@ docs/           Project decisions and development docs
 
 ## Next Milestone
 
-Milestone 3 will add richer MCP retrieval tools, query planning, candidate merge controls, and more retrieval smoke checks before local inference work starts.
+Milestone 4 will add the local inference adapter boundary, deterministic mock inference, prompt templates, and guardrails before the optional `llama.cpp` path.

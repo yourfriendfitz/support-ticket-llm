@@ -35,7 +35,7 @@ type ChatResponse = {
 };
 
 function App() {
-  const [message, setMessage] = useState("Give me the latest ticket about Lambda timeouts");
+  const [message, setMessage] = useState("Give me all Lambda timeout tickets from last week");
   const [response, setResponse] = useState<ChatResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -74,8 +74,8 @@ function App() {
         <p className="eyebrow">Support Operations</p>
         <h1 id="page-title">Ticket intelligence with bounded LLM orchestration.</h1>
         <p className="lede">
-          Milestone 2 proves local ticket retrieval: UI to API to MCP search with cited
-          candidates. Tiny-model inference comes next.
+          Milestone 3 proves planned retrieval: API query planning, MCP search tools,
+          canonical hydration, and cited candidates. Tiny-model inference comes next.
         </p>
       </section>
 
