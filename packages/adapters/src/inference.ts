@@ -57,6 +57,7 @@ const promptGuardrails = [
   "bounded_candidate_count",
   "bounded_snippet_characters",
   "untrusted_ticket_delimiters",
+  "escaped_prompt_markup",
   "cite_only_candidate_ticket_ids"
 ];
 
@@ -77,6 +78,15 @@ function sanitizeForPrompt(value: string): string {
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function escapePromptMarkup(value: string): string {
+  return sanitizeForPrompt(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function truncate(value: string, maxCharacters: number): string {
@@ -102,6 +112,18 @@ export function validateCitedTicketIds(
 ): boolean {
   const allowedTicketIdSet = new Set(allowedTicketIds);
   return extractTicketIds(answer).every((ticketId) => allowedTicketIdSet.has(ticketId));
+}
+
+function renderPromptTicket(candidate: PromptTicketSnippet): string {
+  const attributes = [
+    `id="${escapePromptMarkup(candidate.ticketId)}"`,
+    `service="${escapePromptMarkup(candidate.service)}"`,
+    `status="${escapePromptMarkup(candidate.status)}"`,
+    `priority="${escapePromptMarkup(candidate.priority)}"`,
+    `created_at="${escapePromptMarkup(candidate.createdAt)}"`
+  ].join(" ");
+
+  return `<ticket ${attributes}>${escapePromptMarkup(candidate.snippet)}</ticket>`;
 }
 
 export function buildTicketAnswerPrompt(
@@ -150,12 +172,9 @@ export function buildTicketAnswerPrompt(
       "Cite ticket IDs exactly, and do not cite IDs outside the candidate list."
     ].join(" "),
     user: [
-      `<user_query>${sanitizeForPrompt(request.message)}</user_query>`,
+      `<user_query>${escapePromptMarkup(request.message)}</user_query>`,
       "<untrusted_ticket_candidates>",
-      ...candidateSnippets.map(
-        (candidate) =>
-          `<ticket id="${candidate.ticketId}" service="${candidate.service}" status="${candidate.status}" priority="${candidate.priority}" created_at="${candidate.createdAt}">${candidate.snippet}</ticket>`
-      ),
+      ...candidateSnippets.map(renderPromptTicket),
       "</untrusted_ticket_candidates>"
     ].join("\n"),
     candidateSnippets
