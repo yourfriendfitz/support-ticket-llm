@@ -30,7 +30,7 @@ describe("mcp server", () => {
       limit: 3
     });
 
-    expect(response.results[0]?.ticket.id).toBe("TCK-0001");
+    expect(response.results[0]?.ticket.ticketId).toBe("TCK-0001");
     expect(response.diagnostics.strategy).toBe("hybrid_lexical_vector");
   });
 });

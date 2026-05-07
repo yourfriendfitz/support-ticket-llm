@@ -9,7 +9,8 @@ describe("local ticket retrieval", () => {
 
   it("creates a hundreds-scale deterministic seed set", () => {
     expect(tickets).toHaveLength(240);
-    expect(new Set(tickets.map((ticket) => ticket.id)).size).toBe(tickets.length);
+    expect(new Set(tickets.map((ticket) => ticket.ticketId)).size).toBe(tickets.length);
+    expect(tickets.some((ticket) => ticket.status === "closed")).toBe(true);
   });
 
   it("returns the latest Lambda timeout ticket for the default query", () => {
@@ -23,7 +24,7 @@ describe("local ticket retrieval", () => {
     );
 
     expect(response.sort).toBe("createdAt_desc");
-    expect(response.results[0]?.ticket.id).toBe("TCK-0001");
+    expect(response.results[0]?.ticket.ticketId).toBe("TCK-0001");
     expect(response.results[0]?.matchReasons).toContain("title:lambda");
   });
 

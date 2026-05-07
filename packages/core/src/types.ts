@@ -10,7 +10,7 @@ export const TICKET_SERVICES = [
 ] as const;
 
 export const TICKET_ENVIRONMENTS = ["dev", "stage", "prod", "shared"] as const;
-export const TICKET_STATUSES = ["open", "in_progress", "blocked", "resolved"] as const;
+export const TICKET_STATUSES = ["open", "in_progress", "blocked", "resolved", "closed"] as const;
 export const TICKET_PRIORITIES = ["low", "medium", "high", "critical"] as const;
 export const TICKET_SORTS = ["relevance", "createdAt_desc"] as const;
 
@@ -21,7 +21,7 @@ export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
 export type TicketSort = (typeof TICKET_SORTS)[number];
 
 export type SupportTicket = {
-  id: string;
+  ticketId: string;
   title: string;
   description: string;
   service: TicketService;

@@ -30,12 +30,12 @@ const requesters = [
 ];
 
 const environments: TicketEnvironment[] = ["dev", "stage", "prod", "shared"];
-const statuses: TicketStatus[] = ["open", "in_progress", "blocked", "resolved"];
+const statuses: TicketStatus[] = ["open", "in_progress", "blocked", "resolved", "closed"];
 const priorities: TicketPriority[] = ["low", "medium", "high", "critical"];
 
 const anchorTickets: SupportTicket[] = [
   {
-    id: "TCK-0001",
+    ticketId: "TCK-0001",
     title: "Lambda checkout worker times out under payment load",
     description:
       "Production checkout requests intermittently fail after the Lambda worker reaches the configured timeout. CloudWatch shows duration spikes, retry storms, and API Gateway 504 responses during peak payment traffic.",
@@ -50,7 +50,7 @@ const anchorTickets: SupportTicket[] = [
     tags: ["lambda", "timeout", "cloudwatch", "api_gateway", "payments"]
   },
   {
-    id: "TCK-0002",
+    ticketId: "TCK-0002",
     title: "Lambda report export hits timeout for large CSV files",
     description:
       "The scheduled export Lambda exceeds the timeout when CSV payloads include more than fifty thousand rows. The function logs repeated S3 multipart retries before failing.",
@@ -65,7 +65,7 @@ const anchorTickets: SupportTicket[] = [
     tags: ["lambda", "timeout", "s3", "export"]
   },
   {
-    id: "TCK-0003",
+    ticketId: "TCK-0003",
     title: "DynamoDB throttling on ticket timeline writes",
     description:
       "Ticket timeline updates are delayed because DynamoDB write capacity is throttling on the partition that stores high-volume incident comments.",
@@ -80,7 +80,7 @@ const anchorTickets: SupportTicket[] = [
     tags: ["dynamodb", "throttling", "capacity", "timeline"]
   },
   {
-    id: "TCK-0004",
+    ticketId: "TCK-0004",
     title: "IAM role missing permission for deployment pipeline",
     description:
       "The stage deployment pipeline cannot publish assets because the IAM role is missing the required S3 PutObject permission on the release bucket.",
@@ -95,7 +95,7 @@ const anchorTickets: SupportTicket[] = [
     tags: ["iam", "s3", "deployment", "permission"]
   },
   {
-    id: "TCK-0005",
+    ticketId: "TCK-0005",
     title: "EKS pods restart after memory pressure on worker nodes",
     description:
       "Several API pods on the shared EKS cluster restarted after memory pressure. The node group shows sustained container memory near the eviction threshold.",
@@ -197,7 +197,7 @@ function buildGeneratedTicket(index: number): SupportTicket {
   const status = pick(statuses, index + 1);
 
   return {
-    id: `TCK-${String(index + anchorTickets.length + 1).padStart(4, "0")}`,
+    ticketId: `TCK-${String(index + anchorTickets.length + 1).padStart(4, "0")}`,
     title: scenario.title,
     description: `${scenario.description} Case sample ${index + 1} includes environment-specific telemetry, support notes, and operational context for retrieval evaluation.`,
     service: scenario.service,
@@ -206,7 +206,9 @@ function buildGeneratedTicket(index: number): SupportTicket {
     priority: pick(priorities, index + 3),
     createdAt,
     updatedAt:
-      status === "resolved" ? isoFromOffset(index * 5 - 3) : isoFromOffset(index * 5 - 1),
+      status === "resolved" || status === "closed"
+        ? isoFromOffset(index * 5 - 3)
+        : isoFromOffset(index * 5 - 1),
     requester: pick(requesters, index + 4),
     assignedTeam: scenario.assignedTeam,
     tags: [...scenario.tags, pick(["customer", "incident", "runbook", "automation"], index)]

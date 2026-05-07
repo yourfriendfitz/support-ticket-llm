@@ -72,7 +72,7 @@ export function createTicketEmbedding(ticket: SupportTicket): TicketEmbeddingRec
   const sourceText = createTicketEmbeddingText(ticket);
 
   return {
-    ticketId: ticket.id,
+    ticketId: ticket.ticketId,
     embedding: embedText(sourceText),
     sourceTextHash: hashText(sourceText)
   };

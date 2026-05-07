@@ -159,7 +159,7 @@ function scoreTickets(
     .map((ticket) => {
       const lexical = scoreLexical(ticket, queryTokens);
       const ticketEmbedding =
-        embeddingByTicketId.get(ticket.id) ?? embedText(createTicketEmbeddingText(ticket));
+        embeddingByTicketId.get(ticket.ticketId) ?? embedText(createTicketEmbeddingText(ticket));
       const vectorScore = Math.max(cosineSimilarity(queryEmbedding, ticketEmbedding), 0) * 6;
       const score = lexical.lexicalScore + vectorScore;
 

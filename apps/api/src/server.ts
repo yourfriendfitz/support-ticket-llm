@@ -110,7 +110,7 @@ function createHttpMcpClient(mcpServerUrl: string): ApiMcpClient {
 
 function toCitation(result: TicketSearchResult): ChatCitation {
   return {
-    ticketId: result.ticket.id,
+    ticketId: result.ticket.ticketId,
     title: result.ticket.title,
     service: result.ticket.service,
     environment: result.ticket.environment,
@@ -131,7 +131,7 @@ function buildRetrievalAnswer(searchResponse: TicketSearchResponse): string {
 
   return [
     `Found ${searchResponse.results.length} matching ticket${searchResponse.results.length === 1 ? "" : "s"}.`,
-    `Top match is ${topResult.ticket.id}: ${topResult.ticket.title}.`,
+    `Top match is ${topResult.ticket.ticketId}: ${topResult.ticket.title}.`,
     "Tiny-model inference is not active yet; this response is retrieval-only."
   ].join(" ");
 }
