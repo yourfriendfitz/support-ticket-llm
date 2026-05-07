@@ -1,6 +1,17 @@
 import { pathToFileURL } from "node:url";
 import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import { McpServer } from "@modelcontextprotocol/server";
+import {
+  MAX_SEARCH_LIMIT,
+  TICKET_ENVIRONMENTS,
+  TICKET_PRIORITIES,
+  TICKET_SERVICES,
+  TICKET_SORTS,
+  TICKET_STATUSES,
+  searchTickets,
+  type TicketSearchRequest,
+  type TicketSearchResponse
+} from "@support-ticket-llm/core";
 import Fastify from "fastify";
 import * as z from "zod/v4";
 
@@ -17,12 +28,33 @@ type McpServerOptions = {
   logger?: boolean;
 };
 
+const searchTicketsInputSchema = z.object({
+  query: z.string().min(1),
+  filters: z
+    .object({
+      services: z.array(z.enum(TICKET_SERVICES)).optional(),
+      environments: z.array(z.enum(TICKET_ENVIRONMENTS)).optional(),
+      statuses: z.array(z.enum(TICKET_STATUSES)).optional(),
+      priorities: z.array(z.enum(TICKET_PRIORITIES)).optional(),
+      assignedTeams: z.array(z.string().min(1)).optional(),
+      createdAfter: z.string().datetime().optional(),
+      createdBefore: z.string().datetime().optional()
+    })
+    .optional(),
+  limit: z.number().int().min(1).max(MAX_SEARCH_LIMIT).optional(),
+  sort: z.enum(TICKET_SORTS).optional()
+});
+
 export function createHealthCheckResult(): HealthCheckResult {
   return {
     service: "mcp-server",
     status: "ok",
     timestamp: new Date().toISOString()
   };
+}
+
+export function createSearchTicketsResult(request: TicketSearchRequest): TicketSearchResponse {
+  return searchTickets(request);
 }
 
 export function createProtocolServer() {
@@ -42,6 +74,25 @@ export function createProtocolServer() {
         {
           type: "text",
           text: JSON.stringify(createHealthCheckResult())
+        }
+      ]
+    })
+  );
+
+  server.registerTool(
+    "searchTickets",
+    {
+      description:
+        "Search local support tickets with bounded lexical and deterministic vector retrieval.",
+      inputSchema: searchTicketsInputSchema
+    },
+    async (input) => ({
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            createSearchTicketsResult(searchTicketsInputSchema.parse(input))
+          )
         }
       ]
     })

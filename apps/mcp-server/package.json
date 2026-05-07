@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "dev": "tsx watch src/server.ts",
+    "build": "npm run build --workspace @support-ticket-llm/core && tsc -p tsconfig.build.json",
+    "dev": "npm run build --workspace @support-ticket-llm/core && tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "test": "npm run build --workspace @support-ticket-llm/core && vitest run",
+    "typecheck": "npm run build --workspace @support-ticket-llm/core && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@support-ticket-llm/core": "0.1.0",
     "@cfworker/json-schema": "^4.1.1",
     "@modelcontextprotocol/node": "2.0.0-alpha.2",
     "@modelcontextprotocol/server": "2.0.0-alpha.2",

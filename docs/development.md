@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The repository is in Milestone 1. The local UI, API, and MCP server skeletons are implemented.
+The repository is in Milestone 2. The local UI, API, MCP server, seed data, and retrieval path are implemented.
 
 Current workflow goals:
 
@@ -21,7 +21,7 @@ make compose-config
 make ci
 make doctor
 make dev-shell
-make milestone1-check
+make milestone2-check
 ```
 
 Avoid:
@@ -71,12 +71,13 @@ Milestone 1 includes:
 - MCP server container.
 - Health checks for API and MCP server.
 
-Milestone 2 should add:
+Milestone 2 adds:
 
-- DynamoDB Local or compatible local substitute.
+- Compatible local substitute for DynamoDB-backed ticket access.
 - Lightweight lexical retrieval.
-- Precomputed embedding fixtures.
-- Seed and indexing commands.
+- Deterministic mock embedding fixtures.
+- Seed and indexing commands through `make seed`.
+- MCP `searchTickets` and API `/chat` citations.
 
 ## Environment Configuration
 
@@ -95,10 +96,10 @@ Inference usage:
 
 ## Verification
 
-Current Milestone 1 checks:
+Current Milestone 2 checks:
 
 ```bash
-make milestone1-check
+make milestone2-check
 ```
 
 This runs:
@@ -107,6 +108,7 @@ This runs:
 - TypeScript typecheck.
 - Unit tests.
 - Production build.
+- Seed/index generation.
 
 For a live smoke test:
 

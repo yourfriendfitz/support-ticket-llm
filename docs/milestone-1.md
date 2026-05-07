@@ -44,11 +44,6 @@ curl -X POST http://localhost:4000/chat \
   -d '{"message":"Give me the latest ticket about Lambda timeouts"}'
 ```
 
-## Next Tasks For Milestone 2
+## Milestone 2 Follow-Up
 
-1. Add DynamoDB Local or a compatible local substitute.
-2. Define the support-ticket seed data model and fixtures.
-3. Add lightweight lexical retrieval.
-4. Add precomputed embedding fixtures for vector retrieval.
-5. Build seed and indexing scripts.
-6. Add retrieval-focused tests and smoke checks.
+Milestone 2 work is tracked in [milestone-2.md](milestone-2.md).

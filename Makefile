@@ -1,6 +1,6 @@
 DOCKER_COMPOSE ?= docker compose
 
-.PHONY: build ci compose-config dev dev-shell doctor install lint milestone0-check milestone1-check test typecheck
+.PHONY: build ci compose-config dev dev-shell doctor install lint milestone0-check milestone1-check milestone2-check seed test typecheck
 
 compose-config:
 	$(DOCKER_COMPOSE) --profile tools config
@@ -22,6 +22,9 @@ doctor:
 
 lint:
 	$(DOCKER_COMPOSE) run --rm tools npm run lint
+
+seed:
+	$(DOCKER_COMPOSE) run --rm tools npm run seed
 
 typecheck:
 	$(DOCKER_COMPOSE) run --rm tools npm run typecheck
@@ -45,3 +48,7 @@ milestone0-check: compose-config
 	test -d ops/k8s
 
 milestone1-check: compose-config typecheck test build
+
+milestone2-check: milestone1-check seed
+	test -f data/local/tickets.json
+	test -f data/local/ticket-embeddings.json

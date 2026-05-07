@@ -8,11 +8,28 @@ type ChatResponse = {
   status: "ok" | "error";
   answer?: string;
   error?: string;
+  citations?: Array<{
+    ticketId: string;
+    title: string;
+    service: string;
+    environment: string;
+    status: string;
+    priority: string;
+    createdAt: string;
+    score: number;
+    matchReasons: string[];
+  }>;
   diagnostics?: {
     mcp?: {
       service: string;
       status: string;
       timestamp: string;
+    };
+    retrieval?: {
+      totalTickets: number;
+      filteredTickets: number;
+      returnedTickets: number;
+      strategy: string;
     };
   };
 };
@@ -57,8 +74,8 @@ function App() {
         <p className="eyebrow">Support Operations</p>
         <h1 id="page-title">Ticket intelligence with bounded LLM orchestration.</h1>
         <p className="lede">
-          Milestone 1 proves the local service path: UI to API to MCP health check.
-          Retrieval, indexing, and tiny-model inference come next.
+          Milestone 2 proves local ticket retrieval: UI to API to MCP search with cited
+          candidates. Tiny-model inference comes next.
         </p>
       </section>
 
@@ -71,13 +88,29 @@ function App() {
           rows={5}
         />
         <button type="button" onClick={submitMessage} disabled={isSubmitting}>
-          {isSubmitting ? "Checking service path..." : "Send message"}
+          {isSubmitting ? "Searching tickets..." : "Search tickets"}
         </button>
 
         {response ? (
           <article className={`response response--${response.status}`}>
             <h2>{response.status === "ok" ? "Service path online" : "Request failed"}</h2>
             <p>{response.answer ?? response.error}</p>
+            {response.citations && response.citations.length > 0 ? (
+              <ol className="citations" aria-label="Matching tickets">
+                {response.citations.map((citation) => (
+                  <li key={citation.ticketId}>
+                    <div className="citation__header">
+                      <span>{citation.ticketId}</span>
+                      <span>{citation.priority}</span>
+                    </div>
+                    <strong>{citation.title}</strong>
+                    <p>
+                      {citation.service} / {citation.environment} / {citation.status}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            ) : null}
             {response.diagnostics?.mcp ? (
               <dl>
                 <div>
@@ -87,6 +120,18 @@ function App() {
                 <div>
                   <dt>Status</dt>
                   <dd>{response.diagnostics.mcp.status}</dd>
+                </div>
+              </dl>
+            ) : null}
+            {response.diagnostics?.retrieval ? (
+              <dl>
+                <div>
+                  <dt>Tickets searched</dt>
+                  <dd>{response.diagnostics.retrieval.filteredTickets}</dd>
+                </div>
+                <div>
+                  <dt>Returned</dt>
+                  <dd>{response.diagnostics.retrieval.returnedTickets}</dd>
                 </div>
               </dl>
             ) : null}

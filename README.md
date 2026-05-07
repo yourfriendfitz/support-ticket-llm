@@ -4,26 +4,30 @@ A support-ticket chatbot built with AWS, Terraform, TypeScript, bounded LLM infe
 
 ## Current Status
 
-The project is in Milestone 1: local app skeleton. The UI, API, and MCP server are wired through Docker Compose with a health-check path.
+The project is in Milestone 2: local ticket data and retrieval. The UI, API, and MCP server are wired through Docker Compose, and chat requests now return cited local ticket candidates through the MCP search boundary.
 
 Primary source documents:
 
 - [spec.md](spec.md): build-facing milestone specification.
 - [docs/development.md](docs/development.md): repo layout and local workflow.
 
-## Milestone 1 Outcome
+## Milestone 2 Outcome
 
-Milestone 1 establishes:
+Milestone 2 establishes:
 
 - Support-ticket assistant scope for IT support users.
 - Local-first, container-first development workflow.
 - TypeScript npm workspace.
 - React/Vite UI shell.
 - Fastify Chat API service.
-- MCP server service with a real `healthCheck` tool.
+- MCP server service with real `healthCheck` and `searchTickets` tools.
 - Docker Compose app services for UI, API, and MCP server.
 - Containerized typecheck, test, and build commands.
 - MCP server as the data-access boundary.
+- Shared `@support-ticket-llm/core` package for ticket types, seed data, mock embeddings, and retrieval.
+- Deterministic hundreds-scale ticket seed generation.
+- Hybrid lexical and deterministic vector retrieval for local development.
+- API `/chat` responses with cited ticket candidates.
 
 ## Local Workflow
 
@@ -31,8 +35,14 @@ Use containers for project tooling. Do not install project dependencies on the h
 
 ```bash
 make ci
-make milestone1-check
+make milestone2-check
 make dev
+```
+
+Generate local seed/index files:
+
+```bash
+make seed
 ```
 
 Local ports:
@@ -71,4 +81,4 @@ docs/           Project decisions and development docs
 
 ## Next Milestone
 
-Milestone 2 will add local ticket data, DynamoDB Local or a compatible substitute, lightweight lexical retrieval, precomputed embedding fixtures, and seed/index commands.
+Milestone 3 will add richer MCP retrieval tools, query planning, candidate merge controls, and more retrieval smoke checks before local inference work starts.
