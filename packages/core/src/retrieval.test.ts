@@ -6,6 +6,7 @@ import {
   planAndSearchTickets,
   planTicketQuery,
   searchTickets,
+  searchTicketsLexicalOnly,
   semanticSearchTickets
 } from "./retrieval.js";
 import { createSeedTickets } from "./seed.js";
@@ -105,6 +106,27 @@ describe("local ticket retrieval", () => {
     expect(response.diagnostics.strategy).toBe("deterministic_vector");
     expect(response.results.length).toBeGreaterThan(0);
     expect(response.results.every((result) => result.lexicalScore === 0)).toBe(true);
+  });
+
+  it("supports deterministic keyword-only search without vector pre-limit truncation", () => {
+    const response = searchTicketsLexicalOnly(
+      {
+        query: "lambda",
+        limit: 5
+      },
+      tickets
+    );
+
+    expect(response.diagnostics.strategy).toBe("deterministic_lexical");
+    expect(response.results.map((result) => result.ticket.ticketId)).toEqual([
+      "TCK-0001",
+      "TCK-0002",
+      "TCK-0006",
+      "TCK-0014",
+      "TCK-0022"
+    ]);
+    expect(response.results.every((result) => result.lexicalScore > 0)).toBe(true);
+    expect(response.results.every((result) => result.vectorScore === 0)).toBe(true);
   });
 
   it("plans service and last-week filters for multi-ticket requests", () => {

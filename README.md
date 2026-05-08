@@ -4,16 +4,16 @@ A support-ticket chatbot built with AWS, Terraform, TypeScript, bounded LLM infe
 
 ## Current Status
 
-The project is in Milestone 5: serverless tiny-model inference scaffold. The UI, API, and MCP server run locally through Docker Compose, chat requests use MCP retrieval plus deterministic local answer generation by default, and the codebase now includes an optional Lambda HTTP inference adapter and Terraform scaffold for the future `llama.cpp` path.
+The project is in Milestone 6: evaluation and observability. The UI, API, and MCP server run locally through Docker Compose, chat requests use MCP retrieval plus deterministic local answer generation by default, and responses now include request IDs, component latencies, retrieval counts, and final cited ticket IDs.
 
 Primary source documents:
 
 - [spec.md](spec.md): build-facing milestone specification.
 - [docs/development.md](docs/development.md): repo layout and local workflow.
 
-## Milestone 5 Outcome
+## Milestone 6 Outcome
 
-Milestone 5 establishes:
+Milestone 6 establishes:
 
 - Support-ticket assistant scope for IT support users.
 - Local-first, container-first development workflow.
@@ -39,6 +39,10 @@ Milestone 5 establishes:
 - Terraform scaffold for S3 model artifacts, ECR image storage, Lambda image inference, IAM, CloudWatch logs, and optional IAM-authorized Function URL.
 - Safe environment examples for future cloud inference wiring.
 - Offline scaffold verification through `make milestone5-check`.
+- Structured `/chat` observability with request IDs, component latency, retrieval strategy, candidate counts, and final cited ticket IDs.
+- Retrieval evaluation that compares keyword-only, vector-only, and hybrid merged strategies.
+- Deterministic answer-quality evaluation fixtures for generated answers and citations.
+- Offline Milestone 6 verification through `make milestone6-check`.
 
 ## Local Workflow
 
@@ -46,7 +50,7 @@ Use containers for project tooling. Do not install project dependencies on the h
 
 ```bash
 make ci
-make milestone5-check
+make milestone6-check
 make dev
 ```
 
@@ -92,4 +96,4 @@ docs/           Project decisions and development docs
 
 ## Next Milestone
 
-Milestone 6 will add evaluation and observability around generated answers, latency, and retrieval quality.
+Milestone 7 will move toward a deployable serverless AWS product slice after AWS profile and deployment prerequisites are ready.

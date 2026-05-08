@@ -535,6 +535,7 @@ Deliverables:
 
 - Evaluation query set.
 - Retrieval metrics script.
+- Generated-answer evaluation fixtures and metrics script.
 - Structured logs with request IDs.
 - Basic latency metrics.
 - Optional user feedback capture.
@@ -544,6 +545,7 @@ Acceptance criteria:
 - Evaluation can compare keyword-only, vector-only, hybrid retrieval, and generated answers.
 - Logs show search strategy, candidate counts, and final cited ticket IDs.
 - Latency can be measured per component.
+- Local checks fail if hybrid retrieval or deterministic answer fixtures regress.
 
 ### Milestone 7: Serverless AWS Product Slice
 

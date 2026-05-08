@@ -287,6 +287,29 @@ function scoreTickets(
     .filter((result) => result.lexicalScore > 0 || result.vectorScore >= 3.5);
 }
 
+function scoreTicketsLexicalOnly(
+  query: string,
+  tickets: readonly SupportTicket[]
+): ScoredTicket[] {
+  const queryTokens = normalizeQueryTokens(query);
+
+  return tickets
+    .map((ticket) => {
+      const lexical = scoreLexical(ticket, queryTokens);
+      const lexicalScore = roundScore(lexical.lexicalScore);
+
+      return {
+        ticket,
+        score: lexicalScore,
+        lexicalScore,
+        vectorScore: 0,
+        matchReasons: lexical.reasons,
+        createdAtMs: Date.parse(ticket.createdAt)
+      };
+    })
+    .filter((result) => result.lexicalScore > 0);
+}
+
 function sortResults(results: readonly ScoredTicket[], sort: TicketSort): ScoredTicket[] {
   return [...results].sort((left, right) => {
     if (sort === "createdAt_desc" && left.createdAtMs !== right.createdAtMs) {
@@ -327,6 +350,31 @@ function createSearchResponse(
       strategy
     }
   };
+}
+
+export function searchTicketsLexicalOnly(
+  request: TicketSearchRequest,
+  tickets: readonly SupportTicket[] = createSeedTickets()
+): TicketSearchResponse {
+  const query = request.query.trim();
+  if (!query) {
+    throw new Error("query is required");
+  }
+
+  const filters = request.filters ?? {};
+  const limit = normalizeLimit(request.limit);
+  const sort = inferSort(query, request.sort);
+  const filteredTickets = applyFilters(tickets, filters);
+  const scoredTickets = sortResults(scoreTicketsLexicalOnly(query, filteredTickets), sort);
+  return createSearchResponse(
+    request,
+    "deterministic_lexical",
+    tickets,
+    scoredTickets,
+    filteredTickets,
+    limit,
+    sort
+  );
 }
 
 export function searchTickets(

@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The repository is in Milestone 5. The local UI, API, MCP server, seed data, retrieval path, query planning, candidate hydration, retrieval evaluation path, deterministic inference adapter, optional Lambda HTTP inference adapter, and serverless inference Terraform scaffold are implemented.
+The repository is in Milestone 6. The local UI, API, MCP server, seed data, retrieval path, query planning, candidate hydration, retrieval and answer evaluation paths, deterministic inference adapter, optional Lambda HTTP inference adapter, serverless inference Terraform scaffold, and `/chat` observability diagnostics are implemented.
 
 Current workflow goals:
 
@@ -21,7 +21,7 @@ make compose-config
 make ci
 make doctor
 make dev-shell
-make milestone5-check
+make milestone6-check
 ```
 
 Avoid:
@@ -102,6 +102,14 @@ Milestone 5 adds:
 - Terraform scaffold for the future `llama.cpp` Lambda path.
 - `.env.example` and `make milestone5-check`.
 
+Milestone 6 adds:
+
+- Structured `/chat` logs for request ID, retrieval strategy, candidate counts, final cited ticket IDs, citation validation, and component latency.
+- Response diagnostics under `diagnostics.observability`.
+- Retrieval evaluation metrics for keyword-only, vector-only, and hybrid merged strategies.
+- Deterministic answer-quality evaluation through `make eval-answers`.
+- `make milestone6-check`.
+
 ## Environment Configuration
 
 Use checked-in examples for required environment variables and keep real secrets local.
@@ -128,10 +136,10 @@ Safe defaults are documented in `.env.example`:
 
 ## Verification
 
-Current Milestone 5 checks:
+Current Milestone 6 checks:
 
 ```bash
-make milestone5-check
+make milestone6-check
 ```
 
 This runs:
@@ -144,6 +152,8 @@ This runs:
 - Retrieval evaluation.
 - Inference adapter tests.
 - Offline serverless inference scaffold validation.
+- Answer-quality evaluation.
+- Offline observability/evaluation scaffold validation.
 
 For a live smoke test:
 

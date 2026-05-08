@@ -1,6 +1,6 @@
 DOCKER_COMPOSE ?= docker compose
 
-.PHONY: build ci compose-config dev dev-shell doctor eval-retrieval install lint milestone0-check milestone1-check milestone2-check milestone3-check milestone4-check milestone5-check seed test typecheck
+.PHONY: build ci compose-config dev dev-shell doctor eval-answers eval-retrieval install lint milestone0-check milestone1-check milestone2-check milestone3-check milestone4-check milestone5-check milestone6-check seed test typecheck
 
 compose-config:
 	$(DOCKER_COMPOSE) --profile tools config
@@ -25,6 +25,9 @@ lint:
 
 eval-retrieval:
 	$(DOCKER_COMPOSE) run --rm tools npm run eval:retrieval
+
+eval-answers:
+	$(DOCKER_COMPOSE) run --rm tools npm run eval:answers
 
 seed:
 	$(DOCKER_COMPOSE) run --rm tools npm run seed
@@ -65,3 +68,6 @@ milestone4-check: milestone3-check
 
 milestone5-check: milestone4-check
 	$(DOCKER_COMPOSE) run --rm tools npm run check:milestone5
+
+milestone6-check: milestone5-check eval-answers
+	$(DOCKER_COMPOSE) run --rm tools npm run check:milestone6
