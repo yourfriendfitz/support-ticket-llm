@@ -5,11 +5,11 @@ import { createTicketEmbeddings } from "../embeddings.js";
 import {
   planAndSearchTickets,
   planTicketQuery,
-  searchTickets,
+  searchTicketsLexicalOnly,
   semanticSearchTickets
 } from "../retrieval.js";
 import { createSeedTickets } from "../seed.js";
-import type { TicketSearchRequest, TicketSearchResult, TicketSort } from "../types.js";
+import type { TicketSearchRequest, TicketSearchResult } from "../types.js";
 
 type RetrievalEvalCase = {
   query: string;
@@ -36,35 +36,8 @@ const strategyHits: Record<RetrievalEvalStrategy, number> = {
   hybridMerged: 0
 };
 
-function sortForEval(
-  results: readonly TicketSearchResult[],
-  sort: TicketSort
-): TicketSearchResult[] {
-  return [...results].sort((left, right) => {
-    if (sort === "createdAt_desc") {
-      const createdAtDiff =
-        Date.parse(right.ticket.createdAt) - Date.parse(left.ticket.createdAt);
-      if (createdAtDiff !== 0) {
-        return createdAtDiff;
-      }
-    }
-
-    return right.score - left.score;
-  });
-}
-
 function keywordOnlyResults(request: TicketSearchRequest): TicketSearchResult[] {
-  return sortForEval(
-    searchTickets(request, tickets, embeddings).results
-      .filter((result) => result.lexicalScore > 0)
-      .map((result) => ({
-        ...result,
-        score: result.lexicalScore,
-        vectorScore: 0,
-        matchReasons: result.matchReasons.filter((reason) => !reason.startsWith("vector:"))
-      })),
-    request.sort ?? "relevance"
-  ).slice(0, request.limit);
+  return searchTicketsLexicalOnly(request, tickets).results;
 }
 
 function vectorOnlyResults(request: TicketSearchRequest): TicketSearchResult[] {

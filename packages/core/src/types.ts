@@ -14,6 +14,7 @@ export const TICKET_STATUSES = ["open", "in_progress", "blocked", "resolved", "c
 export const TICKET_PRIORITIES = ["low", "medium", "high", "critical"] as const;
 export const TICKET_SORTS = ["relevance", "createdAt_desc"] as const;
 export const TICKET_SEARCH_STRATEGIES = [
+  "deterministic_lexical",
   "hybrid_lexical_vector",
   "deterministic_vector",
   "merged_candidates"
