@@ -1,0 +1,17 @@
+[
+  {
+    "query": "Give me the latest ticket about Lambda timeouts",
+    "expectedTicketIds": ["TCK-0001"],
+    "expectedAnswerSubstrings": ["TCK-0001", "Lambda checkout worker"]
+  },
+  {
+    "query": "Give me all Lambda timeout tickets from last week",
+    "expectedTicketIds": ["TCK-0001", "TCK-0002"],
+    "expectedAnswerSubstrings": ["2 ticket candidates match", "TCK-0002", "TCK-0001"]
+  },
+  {
+    "query": "Which closed Lambda tickets are recent?",
+    "expectedTicketIds": ["TCK-0014"],
+    "expectedAnswerSubstrings": ["TCK-0014", "closed"]
+  }
+]

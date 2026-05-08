@@ -70,3 +70,7 @@ Then replace `lambda_image_uri` with the future inference image URI before runni
 - Uploading a quantized Qwen3-0.6B GGUF artifact.
 - Running `terraform plan` against a configured non-root AWS profile.
 - Measuring Lambda cold-start and warm latency.
+
+## Follow-Up
+
+Milestone 6 is documented in [docs/milestone-6.md](milestone-6.md). It adds evaluation and observability around retrieval quality, generated answers, request IDs, and component latency.

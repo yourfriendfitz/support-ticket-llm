@@ -109,6 +109,19 @@ describe("api server", () => {
     expect(body.diagnostics.inference.adapter).toBe("deterministic_mock");
     expect(body.diagnostics.inference.citationValidation).toBe("passed");
     expect(body.diagnostics.plan.candidateTicketIds[0]).toBe("TCK-0001");
+    expect(body.diagnostics.observability.requestId).toEqual(expect.any(String));
+    expect(body.diagnostics.observability.componentLatencyMs).toMatchObject({
+      retrieval: expect.any(Number),
+      inference: expect.any(Number),
+      total: expect.any(Number)
+    });
+    expect(body.diagnostics.observability.retrievalStrategy).toBe("merged_candidates");
+    expect(body.diagnostics.observability.retrievalCandidateCounts.returned).toBe(
+      body.citations.length
+    );
+    expect(body.diagnostics.observability.finalCitedTicketIds).toEqual(
+      body.diagnostics.inference.citedTicketIds
+    );
   });
 
   it("plans filters and bounded result counts for multi-ticket chat", async () => {
@@ -227,5 +240,7 @@ describe("api server", () => {
     expect(body.citations).toEqual([]);
     expect(body.diagnostics.inference.citedTicketIds).toEqual([]);
     expect(body.diagnostics.inference.unsafeAnswerWithheld).toBe(true);
+    expect(body.diagnostics.observability.finalCitedTicketIds).toEqual([]);
+    expect(body.diagnostics.observability.componentLatencyMs.total).toEqual(expect.any(Number));
   });
 });

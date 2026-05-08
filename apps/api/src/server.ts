@@ -1,3 +1,4 @@
+import { performance } from "node:perf_hooks";
 import { pathToFileURL } from "node:url";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import {
@@ -60,6 +61,23 @@ type RetrievalDiagnostics = {
   lexicalCandidateCount?: number;
   semanticCandidateCount?: number;
   hydratedTicketCount?: number;
+};
+
+type ObservabilityDiagnostics = {
+  requestId: string;
+  componentLatencyMs: {
+    retrieval: number;
+    inference: number;
+    total: number;
+  };
+  retrievalStrategy: string;
+  retrievalCandidateCounts: {
+    lexical: number;
+    semantic: number;
+    hydrated: number;
+    returned: number;
+  };
+  finalCitedTicketIds: string[];
 };
 
 type ApiMcpClient = {
@@ -268,6 +286,34 @@ function toSafeInferenceResult(inference: GenerateTicketAnswerResponse): {
   };
 }
 
+function elapsedMs(startedAt: number): number {
+  return Number(Math.max(performance.now() - startedAt, 0).toFixed(2));
+}
+
+function createObservabilityDiagnostics(
+  requestId: string,
+  retrieval: {
+    diagnostics: RetrievalDiagnostics;
+  },
+  safeInference: {
+    citedTicketIds: string[];
+  },
+  componentLatencyMs: ObservabilityDiagnostics["componentLatencyMs"]
+): ObservabilityDiagnostics {
+  return {
+    requestId,
+    componentLatencyMs,
+    retrievalStrategy: retrieval.diagnostics.strategy,
+    retrievalCandidateCounts: {
+      lexical: retrieval.diagnostics.lexicalCandidateCount ?? 0,
+      semantic: retrieval.diagnostics.semanticCandidateCount ?? 0,
+      hydrated: retrieval.diagnostics.hydratedTicketCount ?? 0,
+      returned: retrieval.diagnostics.returnedTickets
+    },
+    finalCitedTicketIds: safeInference.citedTicketIds
+  };
+}
+
 async function runPlannedRetrieval(
   message: string,
   mcpClient: ApiMcpClient
@@ -351,6 +397,7 @@ export function buildServer(options: ApiServerOptions = {}) {
   });
 
   app.post<{ Body: ChatRequest }>("/chat", async (request) => {
+    const requestStartedAt = performance.now();
     const message =
       typeof request.body?.message === "string" ? request.body.message.trim() : "";
 
@@ -361,17 +408,45 @@ export function buildServer(options: ApiServerOptions = {}) {
       };
     }
 
+    const retrievalStartedAt = performance.now();
     const retrieval = await runPlannedRetrieval(message, mcpClient);
+    const retrievalLatencyMs = elapsedMs(retrievalStartedAt);
+    const inferenceStartedAt = performance.now();
     const inference = await inferenceAdapter.generateTicketAnswer({
       message,
       candidates: retrieval.results
     });
+    const inferenceLatencyMs = elapsedMs(inferenceStartedAt);
     const safeInference = toSafeInferenceResult(inference);
     const citedTicketIdSet = new Set(safeInference.citedTicketIds);
     const citedResults =
       safeInference.citedTicketIds.length > 0
         ? retrieval.results.filter((result) => citedTicketIdSet.has(result.ticket.ticketId))
         : [];
+    const componentLatencyMs = {
+      retrieval: retrievalLatencyMs,
+      inference: inferenceLatencyMs,
+      total: elapsedMs(requestStartedAt)
+    };
+    const observability = createObservabilityDiagnostics(
+      request.id,
+      retrieval,
+      safeInference,
+      componentLatencyMs
+    );
+
+    request.log.info(
+      {
+        requestId: request.id,
+        retrievalStrategy: observability.retrievalStrategy,
+        retrievalCandidateCounts: observability.retrievalCandidateCounts,
+        finalCitedTicketIds: observability.finalCitedTicketIds,
+        citationValidation: inference.diagnostics.citationValidation,
+        unsafeAnswerWithheld: safeInference.unsafeAnswerWithheld,
+        componentLatencyMs
+      },
+      "chat request completed"
+    );
 
     return {
       status: "ok",
@@ -387,7 +462,8 @@ export function buildServer(options: ApiServerOptions = {}) {
           ...inference.diagnostics,
           citedTicketIds: safeInference.citedTicketIds,
           unsafeAnswerWithheld: safeInference.unsafeAnswerWithheld
-        }
+        },
+        observability
       }
     };
   });
