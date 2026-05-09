@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-The repository is in Milestone 6. The local UI, API, MCP server, seed data, retrieval path, query planning, candidate hydration, retrieval and answer evaluation paths, deterministic inference adapter, optional Lambda HTTP inference adapter, serverless inference Terraform scaffold, and `/chat` observability diagnostics are implemented.
+The repository is in Milestone 7. The local UI, API, MCP server, seed data, retrieval path, query planning, candidate hydration, retrieval and answer evaluation paths, deterministic inference adapter, optional Lambda HTTP inference adapter, `/chat` observability diagnostics, and serverless AWS product-slice Terraform scaffold are implemented.
 
 Current workflow goals:
 
@@ -21,7 +21,7 @@ make compose-config
 make ci
 make doctor
 make dev-shell
-make milestone6-check
+make milestone7-check
 ```
 
 Avoid:
@@ -110,6 +110,16 @@ Milestone 6 adds:
 - Deterministic answer-quality evaluation through `make eval-answers`.
 - `make milestone6-check`.
 
+Milestone 7 adds:
+
+- Serverless product Terraform stack in `infra/terraform/serverless-product`.
+- DynamoDB tables for canonical tickets and precomputed embeddings.
+- Static UI S3 website bucket, private model-artifact S3 bucket, and ECR repositories.
+- API, MCP, and inference Lambda resources with CloudWatch log retention.
+- Optional Lambda Function URLs disabled by default.
+- Dockerized helper targets for AWS identity and Terraform formatting/validation.
+- `make milestone7-check`.
+
 ## Environment Configuration
 
 Use checked-in examples for required environment variables and keep real secrets local.
@@ -136,10 +146,10 @@ Safe defaults are documented in `.env.example`:
 
 ## Verification
 
-Current Milestone 6 checks:
+Current Milestone 7 checks:
 
 ```bash
-make milestone6-check
+make milestone7-check
 ```
 
 This runs:
@@ -154,6 +164,16 @@ This runs:
 - Offline serverless inference scaffold validation.
 - Answer-quality evaluation.
 - Offline observability/evaluation scaffold validation.
+- Offline serverless product-slice scaffold validation.
+
+Additional AWS/Terraform helpers:
+
+```bash
+make aws-whoami
+make terraform-product-fmt
+make terraform-product-init
+make terraform-product-validate
+```
 
 For a live smoke test:
 

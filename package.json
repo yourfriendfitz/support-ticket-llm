@@ -19,6 +19,7 @@
     "eval:answers": "tsx scripts/evaluate-answers.ts",
     "check:milestone5": "node scripts/check-milestone5.mjs",
     "check:milestone6": "node scripts/check-milestone6.mjs",
+    "check:milestone7": "node scripts/check-milestone7.mjs",
     "seed": "npm run seed --workspace @support-ticket-llm/core",
     "dev:api": "npm run dev --workspace @support-ticket-llm/api",
     "dev:mcp": "npm run dev --workspace @support-ticket-llm/mcp-server",

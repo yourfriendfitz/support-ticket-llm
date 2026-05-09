@@ -4,16 +4,16 @@ A support-ticket chatbot built with AWS, Terraform, TypeScript, bounded LLM infe
 
 ## Current Status
 
-The project is in Milestone 6: evaluation and observability. The UI, API, and MCP server run locally through Docker Compose, chat requests use MCP retrieval plus deterministic local answer generation by default, and responses now include request IDs, component latencies, retrieval counts, and final cited ticket IDs.
+The project is in Milestone 7: serverless AWS product slice. The local UI, API, and MCP server still run through Docker Compose, while `infra/terraform/serverless-product` now defines the low-traffic AWS resources needed for a hosted proof of concept.
 
 Primary source documents:
 
 - [spec.md](spec.md): build-facing milestone specification.
 - [docs/development.md](docs/development.md): repo layout and local workflow.
 
-## Milestone 6 Outcome
+## Milestone 7 Outcome
 
-Milestone 6 establishes:
+The project now establishes:
 
 - Support-ticket assistant scope for IT support users.
 - Local-first, container-first development workflow.
@@ -43,6 +43,10 @@ Milestone 6 establishes:
 - Retrieval evaluation that compares keyword-only, vector-only, and hybrid merged strategies.
 - Deterministic answer-quality evaluation fixtures for generated answers and citations.
 - Offline Milestone 6 verification through `make milestone6-check`.
+- Free-plan-safe Terraform stack for DynamoDB ticket storage, DynamoDB embedding storage, static UI hosting, API Lambda, MCP Lambda, inference Lambda, ECR, S3 model artifacts, IAM, Function URLs, and CloudWatch logs.
+- Optional public UI and Function URL switches that are disabled by default.
+- Dockerized AWS CLI and Terraform helper targets for identity checks and product-stack validation.
+- Offline Milestone 7 verification through `make milestone7-check`.
 
 ## Local Workflow
 
@@ -50,7 +54,7 @@ Use containers for project tooling. Do not install project dependencies on the h
 
 ```bash
 make ci
-make milestone6-check
+make milestone7-check
 make dev
 ```
 
@@ -96,4 +100,4 @@ docs/           Project decisions and development docs
 
 ## Next Milestone
 
-Milestone 7 will move toward a deployable serverless AWS product slice after AWS profile and deployment prerequisites are ready.
+Milestone 8 will compare the serverless MVP path with managed-service upgrades such as Bedrock and OpenSearch once the lean product slice is validated.

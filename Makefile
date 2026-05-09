@@ -1,6 +1,10 @@
 DOCKER_COMPOSE ?= docker compose
+TERRAFORM_IMAGE ?= hashicorp/terraform:1.9.8
+AWS_CLI_IMAGE ?= public.ecr.aws/aws-cli/aws-cli:latest
+AWS_PROFILE ?= support-ticket-llm
+AWS_REGION ?= us-east-2
 
-.PHONY: build ci compose-config dev dev-shell doctor eval-answers eval-retrieval install lint milestone0-check milestone1-check milestone2-check milestone3-check milestone4-check milestone5-check milestone6-check seed test typecheck
+.PHONY: aws-whoami build ci compose-config dev dev-shell doctor eval-answers eval-retrieval install lint milestone0-check milestone1-check milestone2-check milestone3-check milestone4-check milestone5-check milestone6-check milestone7-check seed terraform-product-fmt terraform-product-init terraform-product-validate test typecheck
 
 compose-config:
 	$(DOCKER_COMPOSE) --profile tools config
@@ -41,6 +45,18 @@ test:
 build:
 	$(DOCKER_COMPOSE) run --rm tools npm run build
 
+aws-whoami:
+	docker run --rm -v "$(HOME)/.aws:/root/.aws:ro" $(AWS_CLI_IMAGE) sts get-caller-identity --profile $(AWS_PROFILE) --region $(AWS_REGION)
+
+terraform-product-fmt:
+	docker run --rm -v "$(CURDIR):/workspace" -w /workspace/infra/terraform/serverless-product $(TERRAFORM_IMAGE) fmt -check
+
+terraform-product-init:
+	docker run --rm -v "$(CURDIR):/workspace" -w /workspace/infra/terraform/serverless-product $(TERRAFORM_IMAGE) init -backend=false
+
+terraform-product-validate:
+	docker run --rm -v "$(CURDIR):/workspace" -w /workspace/infra/terraform/serverless-product $(TERRAFORM_IMAGE) validate
+
 milestone0-check: compose-config
 	test -f README.md
 	test -f spec.md
@@ -71,3 +87,6 @@ milestone5-check: milestone4-check
 
 milestone6-check: milestone5-check eval-answers
 	$(DOCKER_COMPOSE) run --rm tools npm run check:milestone6
+
+milestone7-check: milestone6-check
+	$(DOCKER_COMPOSE) run --rm tools npm run check:milestone7

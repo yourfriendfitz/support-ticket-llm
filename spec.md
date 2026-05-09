@@ -566,6 +566,13 @@ Acceptance criteria:
 - After non-root CLI profile configuration, the stack can be deployed to a selected AWS account and region.
 - Hosted UI can ask a ticket question and receive cited results from the serverless backend.
 
+Implementation notes:
+
+- Use Lambda Function URLs first, disabled by default and IAM-authorized unless deliberately changed for a controlled demo.
+- Keep static UI public read disabled by default until publishing non-secret assets is intentional.
+- Keep the model artifact bucket private.
+- Avoid AWS Organizations, EKS, OpenSearch, Bedrock, NAT Gateways, VPC endpoints, RDS, and provisioned concurrency for the Free account plan path.
+
 ### Milestone 8: Managed Service Upgrade Evaluation
 
 Deliverables:
@@ -596,13 +603,13 @@ Resolved:
 - Local inference uses a mock adapter by default, with optional local `llama.cpp` parity testing.
 - Lightweight auth is deferred unless it materially improves the product slice without distracting from retrieval and LLM security.
 - Initial seed-ticket taxonomy covers common AWS support areas: Lambda, EKS, DynamoDB, IAM, API Gateway, S3, CloudWatch, and OpenSearch.
+- First serverless API path uses Lambda Function URLs; API Gateway is deferred until it is needed.
 
 Remaining open decisions:
 
 - Exact dependency versions.
 - Exact quantized Qwen3-0.6B GGUF artifact.
 - Exact AWS Lambda packaging and build flow.
-- Whether the first serverless API uses API Gateway or Lambda Function URLs.
 
 ## 20. Definition Of Done For MVP
 

@@ -74,6 +74,4 @@ Answer evaluation checks deterministic generated answers for:
 
 ## Next Tasks For Milestone 7
 
-1. Decide whether to configure a non-root AWS CLI profile before Terraform planning.
-2. Add serverless API/retrieval infrastructure only after AWS access is ready.
-3. Keep local evals as the quality gate for cloud changes.
+Milestone 7 is documented in [docs/milestone-7.md](milestone-7.md). It adds the serverless AWS product-slice Terraform stack while preserving the local evaluation gates.
