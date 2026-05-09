@@ -1,0 +1,26 @@
+aws_region   = "us-east-2"
+project_name = "support-ticket-llm"
+environment  = "dev"
+
+# Use image URIs built and pushed to the ECR repositories output by this stack,
+# or bootstrap once with temporary placeholder images during initial planning.
+api_lambda_image_uri       = "123456789012.dkr.ecr.us-east-2.amazonaws.com/support-ticket-llm-dev-api:latest"
+mcp_lambda_image_uri       = "123456789012.dkr.ecr.us-east-2.amazonaws.com/support-ticket-llm-dev-mcp:latest"
+inference_lambda_image_uri = "123456789012.dkr.ecr.us-east-2.amazonaws.com/support-ticket-llm-dev-inference:latest"
+
+dynamodb_billing_mode = "PROVISIONED"
+
+tickets_read_capacity     = 1
+tickets_write_capacity    = 1
+embeddings_read_capacity  = 1
+embeddings_write_capacity = 1
+
+enable_static_website_public_read = false
+
+enable_api_function_url                = false
+api_function_url_authorization_type    = "AWS_IAM"
+enable_inference_function_url          = false
+inference_function_url_authorization_type = "AWS_IAM"
+
+max_candidates       = 5
+max_generated_tokens = 256

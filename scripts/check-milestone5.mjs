@@ -22,6 +22,7 @@ const skippedDirectories = new Set([
   ".agent",
   ".git",
   ".npm-cache",
+  ".terraform",
   "coverage",
   "data/local",
   "dist",
